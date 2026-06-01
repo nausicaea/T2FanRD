@@ -10,6 +10,12 @@ COPY src/ ./src/
 RUN cargo build --frozen --release --target ${TARGET}
 
 FROM scratch
+LABEL org.opencontainers.image.title="t2fanrd"
+LABEL org.opencontainers.image.description="Simple Fan Daemon for T2 Macs"
+LABEL org.opencontainers.image.authors="GnomedDev,nausicaea"
+LABEL org.opencontainers.image.source="https://github.com/nausicaea/t2fanrd"
+LABEL org.opencontainers.image.version="0.1.0"
+LABEL org.opencontainers.image.licenses="GPL-3.0-only"
 COPY manifest.yaml /
 COPY rootfs/ /rootfs/
 COPY --from=build --chown=root:root --chmod=0755 /workdir/target/x86_64-unknown-linux-musl/release/t2fanrd /rootfs/usr/local/sbin/t2fanrd
