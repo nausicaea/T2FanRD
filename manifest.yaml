@@ -1,7 +1,7 @@
 version: v1alpha1
 metadata:
   name: t2fanrd
-  version: 0.1.0-v1.12.0
+  version: 0.1.0
   author: You
   description: |
     Fan daemon for Apple T2 Macs. Controls fan speed based on
