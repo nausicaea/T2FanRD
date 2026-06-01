@@ -2,10 +2,8 @@ version: v1alpha1
 metadata:
   name: t2fanrd
   version: 0.1.0
-  author: You
-  description: |
-    Fan daemon for Apple T2 Macs. Controls fan speed based on
-    CPU and GPU temperature readings via Apple T2 hardware interfaces.
+  author: GnomedDev
+  description: Simple Fan Daemon for T2 Macs
   compatibility:
     talos:
       version: ">= v1.12.0"
