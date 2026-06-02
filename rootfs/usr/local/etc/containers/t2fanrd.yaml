@@ -2,8 +2,8 @@ name: t2fanrd
 container:
   entrypoint: ./t2fanrd
   security:
-    writeableSysfs: true      # needed for fan speed writes
-    readonlyPaths: []         # clear defaults so our mounts take precedence
+    writeableSysfs: true
+    readonlyPaths: []
     maskedPaths: []
 depends:
   - configuration: true
