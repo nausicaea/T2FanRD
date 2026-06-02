@@ -34,14 +34,8 @@ container:
       options:
         - rbind
         - ro
-    # Config file (writable location in Talos)
-    - source: /var/etc/t2fanrd
-      destination: /etc
-      type: bind
-      options:
-        - rbind
-        - rw
 depends:
+  - configuration: true
   - network:
       - addresses
 restart: always
