@@ -36,8 +36,6 @@ container:
         - ro
 depends:
   - configuration: true
-  - network:
-      - addresses
 restart: always
 logToConsole: true
 
