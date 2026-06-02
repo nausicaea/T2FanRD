@@ -2,48 +2,11 @@ name: t2fanrd
 container:
   entrypoint: ./t2fanrd
   security:
-    writeableSysfs: true      # needed for fan speed writes
-    readonlyPaths: []         # clear defaults so our mounts take precedence
+    writeableSysfs: true
+    readonlyPaths: []
     maskedPaths: []
-  mounts:
-    # Fan control — read/write
-    - source: /sys/devices/pci0000:00
-      destination: /sys/devices/pci0000:00
-      type: bind
-      options:
-        - rbind
-        - rw
-    # CPU temperature — read-only
-    - source: /sys/devices/platform/coretemp.0
-      destination: /sys/devices/platform/coretemp.0
-      type: bind
-      options:
-        - rbind
-        - ro
-    # GPU DRM — read-only
-    - source: /sys/class/drm/card0
-      destination: /sys/class/drm/card0
-      type: bind
-      options:
-        - rbind
-        - ro
-    # /proc access (for /proc/<pid> reads)
-    - source: /proc
-      destination: /proc
-      type: bind
-      options:
-        - rbind
-        - ro
-    # Config file (writable location in Talos)
-    - source: /var/etc/t2fanrd
-      destination: /etc
-      type: bind
-      options:
-        - rbind
-        - rw
 depends:
-  - network:
-      - addresses
+  - configuration: true
 restart: always
 logToConsole: true
 
