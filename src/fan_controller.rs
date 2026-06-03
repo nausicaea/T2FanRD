@@ -9,6 +9,15 @@ use crate::{
 };
 
 #[derive(Debug)]
+pub struct Fan(PathBuf);
+
+impl Fan {
+    pub fn new(path: PathBuf) -> Self {
+        Fan(path)
+    }
+}
+
+#[derive(Debug)]
 pub struct FanController {
     manual_file: std::fs::File,
     output_file: std::fs::File,
@@ -19,20 +28,20 @@ pub struct FanController {
 }
 
 impl FanController {
-    pub fn new(path: PathBuf, config: FanConfig) -> Result<Self> {
+    pub fn new(fan: Fan, config: FanConfig) -> Result<Self> {
         fn join_suffix(mut path: PathBuf, suffix: &str) -> PathBuf {
             let file_name = path.file_name().unwrap().to_str().unwrap();
             path.set_file_name(format!("{file_name}{suffix}"));
             path
         }
 
-        let min_speed = std::fs::read_to_string(join_suffix(path.clone(), "_min"))
+        let min_speed = std::fs::read_to_string(join_suffix(fan.0.clone(), "_min"))
             .map_err(Error::MinSpeedRead)?
             .trim()
             .parse()
             .map_err(Error::MinSpeedParse)?;
 
-        let max_speed = std::fs::read_to_string(join_suffix(path.clone(), "_max"))
+        let max_speed = std::fs::read_to_string(join_suffix(fan.0.clone(), "_max"))
             .map_err(Error::MaxSpeedRead)?
             .trim_end()
             .parse()
@@ -42,11 +51,11 @@ impl FanController {
         open_options.write(true).truncate(true);
 
         let manual_file = open_options
-            .open(join_suffix(path.clone(), "_manual"))
+            .open(join_suffix(fan.0.clone(), "_manual"))
             .map_err(Error::FanOpen)?;
 
         let output_file = open_options
-            .open(join_suffix(path, "_output"))
+            .open(join_suffix(fan.0, "_output"))
             .map_err(Error::FanOpen)?;
 
         let this = Self {

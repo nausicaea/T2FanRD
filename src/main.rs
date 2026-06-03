@@ -10,14 +10,11 @@
 )]
 
 use std::{
-    io::{ErrorKind, Read, Seek},
-    path::PathBuf,
-    process::ExitCode,
-    sync::{atomic::AtomicBool, Arc},
+    io::{ErrorKind, Read, Seek}, process::ExitCode, sync::{Arc, atomic::AtomicBool}
 };
 
 use arraydeque::ArrayDeque;
-use fan_controller::FanController;
+use fan_controller::{FanController, Fan};
 use nonempty::NonEmpty as NonEmptyVec;
 use signal_hook::consts::{SIGINT, SIGTERM};
 
@@ -41,29 +38,34 @@ fn get_current_euid() -> libc::uid_t {
     unsafe { libc::geteuid() }
 }
 
-fn find_fan_paths() -> Result<NonEmptyVec<PathBuf>> {
-    // APP0001:00/fan1_label
-    let fan = glob::glob("/sys/devices/pci*/*/*/*/APP0001:00/fan*")?
-        .filter_map(Result::ok)
-        .find(|p| p.exists())
-        .ok_or(Error::NoFan)?;
 
-    // APP0001:00
-    let first_fan_path = fan.parent().ok_or(Error::NoFan)?;
-    // APP0001:00/fan*_input
-    let fan_glob = first_fan_path.display().to_string() + "/fan*_input";
-    // APP0001:00/fan1
-    let fans = glob::glob(&fan_glob)?
-        .filter_map(Result::ok)
-        .filter_map(|mut path| {
-            let file_name = path.file_name()?.to_str()?;
-            let fan_name = file_name.strip_suffix("_input")?;
-            let fan_name_owned = fan_name.to_owned();
-            path.set_file_name(fan_name_owned);
-            Some(path)
-        });
+fn find_fans() -> Result<NonEmptyVec<Fan>> {
+    // /sys/class/hwmon/hwmon*/device/name == "applesmc"
+    // /sys/class/hwmon/hwmon*/device/fan*
+    let mut fans = Vec::default();
+    for path in glob::glob("/sys/class/hwmon/hwmon*/device/name")? {
+        let path = path?;
+        let mut device_name = String::default();
+        std::fs::File::open(&path)
+            .and_then(|mut f| f.read_to_string(&mut device_name))
+            .map_err(Error::FanSearch)?;
+        if device_name != "applesmc" {
+            continue;
+        }
 
-    NonEmptyVec::collect(fans).ok_or(Error::NoFan)
+        let device_path = path.parent().ok_or(Error::NoFan)?;
+        for fan_input in glob::glob(&format!("{}/fan*_input", device_path.display()))? {
+            let mut fan_input = fan_input?;
+            let fan_name = fan_input.file_name()
+                .and_then(|f| f.to_str())
+                .and_then(|f| f.strip_suffix("_input"))
+                .ok_or(Error::NoFan)?;
+            fan_input.set_file_name(fan_name.to_string());
+            fans.push(Fan::new(fan_input));
+        }
+    }
+
+    NonEmptyVec::from_vec(fans).ok_or(Error::NoFan)
 }
 
 fn check_pid_file() -> Result<()> {
@@ -199,19 +201,19 @@ fn real_main() -> Result<()> {
 
     let mut temp_buffer = String::new();
 
-    let fan_paths = find_fan_paths()?;
-    let fans = load_fan_configs(fan_paths)?;
+    let fans = find_fans()?;
+    let fan_controllers = load_fan_configs(fans)?;
     let cpu_temp_file = find_cpu_temp_file(&mut temp_buffer)?;
     let gpu_temp_file = find_gpu_temp_file(&mut temp_buffer)?;
 
     println!();
-    for fan in &fans {
+    for fan in &fan_controllers {
         fan.set_manual(true)?;
     }
 
-    let res = start_temp_loop(temp_buffer, cpu_temp_file, gpu_temp_file, &fans);
+    let res = start_temp_loop(temp_buffer, cpu_temp_file, gpu_temp_file, &fan_controllers);
     println!("T2 Fan Daemon is shutting down...");
-    for fan in fans {
+    for fan in fan_controllers {
         fan.set_manual(false)?;
     }
 

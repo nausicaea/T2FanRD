@@ -53,15 +53,23 @@ pub enum Error {
     FanOpen(#[source] std::io::Error),
     #[error("Cannot write to fan controller")]
     FanWrite(#[source] std::io::Error),
+    #[error("Cannot complete search for fans")]
+    FanSearch(#[source] std::io::Error),
 
     #[error("Cannot setup shutdown signals")]
     Signal(#[source] std::io::Error),
 
     #[error("Programmer Error: Invalid glob pattern")]
-    Glob(
+    GlobPattern(
         #[from]
         #[source]
         glob::PatternError,
+    ),
+    #[error("Cannot read path from glob pattern")]
+    Glob(
+        #[from]
+        #[source]
+        glob::GlobError,
     ),
 }
 
