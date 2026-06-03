@@ -10,11 +10,13 @@
 )]
 
 use std::{
-    io::{ErrorKind, Read, Seek}, process::ExitCode, sync::{Arc, atomic::AtomicBool}
+    io::{ErrorKind, Read, Seek},
+    process::ExitCode,
+    sync::{Arc, atomic::AtomicBool},
 };
 
 use arraydeque::ArrayDeque;
-use fan_controller::{FanController, Fan};
+use fan_controller::{Fan, FanController};
 use nonempty::NonEmpty as NonEmptyVec;
 use signal_hook::consts::{SIGINT, SIGTERM};
 
@@ -38,7 +40,6 @@ fn get_current_euid() -> libc::uid_t {
     unsafe { libc::geteuid() }
 }
 
-
 fn find_fans() -> Result<NonEmptyVec<Fan>> {
     // /sys/class/hwmon/hwmon*/device/name == "applesmc"
     // /sys/class/hwmon/hwmon*/device/fan*
@@ -56,7 +57,8 @@ fn find_fans() -> Result<NonEmptyVec<Fan>> {
         let device_path = path.parent().ok_or(Error::NoFan)?;
         for fan_input in glob::glob(&format!("{}/fan*_input", device_path.display()))? {
             let mut fan_input = fan_input?;
-            let fan_name = fan_input.file_name()
+            let fan_name = fan_input
+                .file_name()
                 .and_then(|f| f.to_str())
                 .and_then(|f| f.strip_suffix("_input"))
                 .ok_or(Error::NoFan)?;

@@ -2,7 +2,10 @@ use std::{io::ErrorKind, num::NonZeroUsize, str::FromStr};
 
 use nonempty::NonEmpty as NonEmptyVec;
 
-use crate::{Error, Result, fan_controller::{Fan, FanController}};
+use crate::{
+    Error, Result,
+    fan_controller::{Fan, FanController},
+};
 
 #[cfg(debug_assertions)]
 const CONFIG_FILE: &str = "./t2fand.conf";
