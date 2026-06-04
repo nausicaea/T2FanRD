@@ -10,10 +10,7 @@
 )]
 
 use std::{
-    io::{ErrorKind, Read, Seek},
-    path::Path,
-    process::ExitCode,
-    sync::{Arc, atomic::{AtomicBool, Ordering}},
+    fs::File, io::{ErrorKind, Read, Seek}, path::Path, process::ExitCode, sync::{Arc, atomic::{AtomicBool, Ordering}}
 };
 
 use arraydeque::ArrayDeque;
@@ -49,7 +46,7 @@ fn find_fans() -> Result<NonEmptyVec<Fan>> {
     for path in glob::glob("/sys/class/hwmon/hwmon*/device/name")? {
         let path = path?;
         let mut device_name = String::default();
-        std::fs::File::open(&path)
+        File::open(&path)
             .and_then(|mut f| f.read_to_string(&mut device_name))
             .map_err(Error::FanSearch)?;
         if device_name.trim() != "applesmc" {
@@ -88,7 +85,7 @@ fn check_pid_file<P: AsRef<Path>>(pid_file: P) -> Result<()> {
     std::fs::write(&pid_file, current_pid).map_err(Error::PidWrite)
 }
 
-fn read_temp_file(temp_file: &mut std::fs::File, temp_buf: &mut String) -> Result<u8> {
+fn read_temp_file(temp_file: &mut File, temp_buf: &mut String) -> Result<u8> {
     temp_file
         .read_to_string(temp_buf)
         .map_err(Error::TempRead)?;
@@ -100,14 +97,14 @@ fn read_temp_file(temp_file: &mut std::fs::File, temp_buf: &mut String) -> Resul
     temp.map(|t| (t / 1000) as u8)
 }
 
-fn find_temp_file(temps: glob::Paths, temp_buf: &mut String) -> Option<std::fs::File> {
+fn find_temp_file(temps: glob::Paths, temp_buf: &mut String) -> Option<File> {
     for temp_path_res in temps {
         let Ok(temp_path) = temp_path_res else {
             log::error!("Unable to read glob path");
             continue;
         };
 
-        let Ok(mut temp_file) = std::fs::File::open(temp_path) else {
+        let Ok(mut temp_file) = File::open(temp_path) else {
             log::error!("Unable to open temperature sensor");
             continue;
         };
@@ -120,12 +117,12 @@ fn find_temp_file(temps: glob::Paths, temp_buf: &mut String) -> Option<std::fs::
     None
 }
 
-fn find_cpu_temp_file(temp_buf: &mut String) -> Result<std::fs::File> {
+fn find_cpu_temp_file(temp_buf: &mut String) -> Result<File> {
     let temps = glob::glob("/sys/devices/platform/coretemp.0/hwmon/hwmon*/temp1_input")?;
     find_temp_file(temps, temp_buf).ok_or(Error::NoCpu)
 }
 
-fn find_gpu_temp_file(temp_buf: &mut String) -> Result<Option<std::fs::File>> {
+fn find_gpu_temp_file(temp_buf: &mut String) -> Result<Option<File>> {
     let temps = glob::glob("/sys/class/drm/card0/device/hwmon/hwmon*/temp1_input")?;
     Ok(find_temp_file(temps, temp_buf))
 }
@@ -144,8 +141,8 @@ fn main() -> ExitCode {
 
 fn start_temp_loop(
     mut temp_buffer: String,
-    mut cpu_temp_file: std::fs::File,
-    mut gpu_temp_file: Option<std::fs::File>,
+    mut cpu_temp_file: File,
+    mut gpu_temp_file: Option<File>,
     fans: &NonEmptyVec<FanController>,
 ) -> Result<()> {
     let term = Arc::new(AtomicBool::new(false));
