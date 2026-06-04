@@ -13,13 +13,14 @@ use std::{
     io::{ErrorKind, Read, Seek},
     path::Path,
     process::ExitCode,
-    sync::{Arc, atomic::AtomicBool},
+    sync::{Arc, atomic::{AtomicBool, Ordering}},
 };
 
 use arraydeque::ArrayDeque;
 use fan_controller::{Fan, FanController};
 use nonempty::NonEmpty as NonEmptyVec;
-use signal_hook::consts::{SIGINT, SIGTERM};
+use signal_hook::consts::{SIGINT, SIGTERM, SIGQUIT, SIGHUP};
+use signal_hook::flag as signal_flag;
 
 use config::load_fan_configs;
 use error::{Error, Result};
@@ -147,14 +148,16 @@ fn start_temp_loop(
     mut gpu_temp_file: Option<std::fs::File>,
     fans: &NonEmptyVec<FanController>,
 ) -> Result<()> {
-    let cancellation_token = Arc::new(AtomicBool::new(false));
-    signal_hook::flag::register(SIGINT, cancellation_token.clone()).map_err(Error::Signal)?;
-    signal_hook::flag::register(SIGTERM, cancellation_token.clone()).map_err(Error::Signal)?;
+    let term = Arc::new(AtomicBool::new(false));
+    signal_flag::register(SIGINT, term.clone()).map_err(Error::Signal)?;
+    signal_flag::register(SIGTERM, term.clone()).map_err(Error::Signal)?;
+    signal_flag::register(SIGQUIT, term.clone()).map_err(Error::Signal)?;
+    signal_flag::register(SIGHUP, term.clone()).map_err(Error::Signal)?;
 
     let mut last_temp = 0;
     let mut temps = ArrayDeque::<u8, 50, arraydeque::Wrapping>::new();
     let mut was_long_sleep = false;
-    while !cancellation_token.load(std::sync::atomic::Ordering::Relaxed) {
+    while !term.load(Ordering::Relaxed) {
         let cpu_temp = read_temp_file(&mut cpu_temp_file, &mut temp_buffer)?;
         let temp = if let Some(gpu_temp_file) = &mut gpu_temp_file {
             let gpu_temp = read_temp_file(gpu_temp_file, &mut temp_buffer)?;
