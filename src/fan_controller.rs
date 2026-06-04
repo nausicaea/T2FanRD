@@ -66,7 +66,7 @@ impl FanController {
             max_speed,
         };
 
-        println!("Found fan: {this:#?}");
+        log::info!("Found fan: {this:#?}");
         Ok(this)
     }
 
@@ -86,7 +86,7 @@ impl FanController {
         {
             let mut stdout = std::io::stdout().lock();
             if stdout.is_terminal() {
-                print!("\x1b[1K\rSetting fan speed to {speed}");
+                log::info!("\x1b[1K\rSetting fan speed to {speed}");
                 let _ = stdout.flush();
             }
         }

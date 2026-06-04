@@ -104,12 +104,12 @@ fn read_temp_file(temp_file: &mut std::fs::File, temp_buf: &mut String) -> Resul
 fn find_temp_file(temps: glob::Paths, temp_buf: &mut String) -> Option<std::fs::File> {
     for temp_path_res in temps {
         let Ok(temp_path) = temp_path_res else {
-            eprintln!("Unable to read glob path");
+            log::error!("Unable to read glob path");
             continue;
         };
 
         let Ok(mut temp_file) = std::fs::File::open(temp_path) else {
-            eprintln!("Unable to open temperature sensor");
+            log::error!("Unable to open temperature sensor");
             continue;
         };
 
@@ -132,10 +132,12 @@ fn find_gpu_temp_file(temp_buf: &mut String) -> Result<Option<std::fs::File>> {
 }
 
 fn main() -> ExitCode {
+    env_logger::init();
+
     match real_main() {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
-            eprintln!("Error: {err}");
+            log::error!("{err}");
             ExitCode::FAILURE
         }
     }
@@ -208,13 +210,12 @@ fn real_main() -> Result<()> {
     let cpu_temp_file = find_cpu_temp_file(&mut temp_buffer)?;
     let gpu_temp_file = find_gpu_temp_file(&mut temp_buffer)?;
 
-    println!();
     for fan in &fan_controllers {
         fan.set_manual(true)?;
     }
 
     let res = start_temp_loop(temp_buffer, cpu_temp_file, gpu_temp_file, &fan_controllers);
-    println!("T2 Fan Daemon is shutting down...");
+    log::info!("T2 Fan Daemon is shutting down...");
     for fan in fan_controllers {
         fan.set_manual(false)?;
     }
