@@ -10,7 +10,10 @@
 )]
 
 use std::{
-    io::{ErrorKind, Read, Seek}, path::Path, process::ExitCode, sync::{Arc, atomic::AtomicBool}
+    io::{ErrorKind, Read, Seek},
+    path::Path,
+    process::ExitCode,
+    sync::{Arc, atomic::AtomicBool},
 };
 
 use arraydeque::ArrayDeque;
