@@ -10,13 +10,20 @@
 )]
 
 use std::{
-    fs::File, io::{ErrorKind, Read, Seek}, path::Path, process::ExitCode, sync::{Arc, atomic::{AtomicBool, Ordering}}
+    fs::File,
+    io::{ErrorKind, Read, Seek},
+    path::Path,
+    process::ExitCode,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 use arraydeque::ArrayDeque;
 use fan_controller::{Fan, FanController};
 use nonempty::NonEmpty as NonEmptyVec;
-use signal_hook::consts::{SIGINT, SIGTERM, SIGQUIT, SIGHUP};
+use signal_hook::consts::{SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 use signal_hook::flag as signal_flag;
 
 use config::load_fan_configs;
