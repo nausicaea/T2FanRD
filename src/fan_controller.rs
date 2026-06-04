@@ -86,7 +86,7 @@ impl FanController {
         {
             let mut stdout = std::io::stdout().lock();
             if stdout.is_terminal() {
-                log::info!("\x1b[1K\rSetting fan speed to {speed}");
+                log::info!("Setting fan speed to {speed}");
                 let _ = stdout.flush();
             }
         }
