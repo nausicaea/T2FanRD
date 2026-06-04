@@ -27,7 +27,7 @@ mod config;
 mod error;
 mod fan_controller;
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(any(target_os = "linux", debug_assertions)))]
 compile_error!("This tool is only developed for Linux systems.");
 
 #[cfg(debug_assertions)]
@@ -50,7 +50,7 @@ fn find_fans() -> Result<NonEmptyVec<Fan>> {
         std::fs::File::open(&path)
             .and_then(|mut f| f.read_to_string(&mut device_name))
             .map_err(Error::FanSearch)?;
-        if device_name != "applesmc" {
+        if device_name.trim() != "applesmc" {
             continue;
         }
 
