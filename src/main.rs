@@ -215,9 +215,5 @@ fn real_main() -> Result<()> {
         fan.set_manual(false)?;
     }
 
-    let pid_res = std::fs::remove_file(PID_FILE).map_err(Error::PidDelete);
-    match (res, pid_res) {
-        (Err(err), _) | (_, Err(err)) => Err(err),
-        (Ok(()), Ok(())) => Ok(()),
-    }
+    res.and_then(|_| std::fs::remove_file(PID_FILE).map_err(Error::PidDelete))
 }
