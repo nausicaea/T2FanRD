@@ -10,9 +10,7 @@
 )]
 
 use std::{
-    io::{ErrorKind, Read, Seek},
-    process::ExitCode,
-    sync::{Arc, atomic::AtomicBool},
+    io::{ErrorKind, Read, Seek}, path::Path, process::ExitCode, sync::{Arc, atomic::AtomicBool}
 };
 
 use arraydeque::ArrayDeque;
@@ -70,13 +68,10 @@ fn find_fans() -> Result<NonEmptyVec<Fan>> {
     NonEmptyVec::from_vec(fans).ok_or(Error::NoFan)
 }
 
-fn check_pid_file() -> Result<()> {
-    match std::fs::read_to_string(PID_FILE) {
+fn check_pid_file<P: AsRef<Path>>(pid_file: P) -> Result<()> {
+    match std::fs::read_to_string(&pid_file) {
         Ok(pid) => {
-            let mut proc_path = std::path::PathBuf::new();
-            proc_path.push("/proc");
-            proc_path.push(pid);
-
+            let proc_path = std::path::Path::new("/proc").join(pid);
             if proc_path.exists() {
                 return Err(Error::AlreadyRunning);
             }
@@ -86,7 +81,7 @@ fn check_pid_file() -> Result<()> {
     }
 
     let current_pid = std::process::id().to_string();
-    std::fs::write(PID_FILE, current_pid).map_err(Error::PidWrite)
+    std::fs::write(&pid_file, current_pid).map_err(Error::PidWrite)
 }
 
 fn read_temp_file(temp_file: &mut std::fs::File, temp_buf: &mut String) -> Result<u8> {
@@ -201,7 +196,7 @@ fn real_main() -> Result<()> {
         return Err(Error::NotRoot);
     }
 
-    check_pid_file()?;
+    check_pid_file(PID_FILE)?;
 
     let mut temp_buffer = String::new();
 
