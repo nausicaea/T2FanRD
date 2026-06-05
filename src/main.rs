@@ -203,7 +203,7 @@ fn start_temp_loop(
             for fan in fans.iter_mut() {
                 let speed = fan.calc_speed(mean_temp);
                 if fan.set_speed(speed)? {
-                    log::info!("temp={mean_temp}°C, mean={mean_temp}°C, speed={speed} RPM");
+                    log::info!("temp={temp}°C, mean={mean_temp}°C, speed={speed} RPM");
                 }
             }
 

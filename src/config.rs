@@ -44,6 +44,8 @@ pub struct FanConfig {
     pub high_temp: u8,
     pub speed_curve: SpeedCurve,
     pub always_full_speed: bool,
+    pub speed_tolerance_percent: f32,
+    pub settling_time_factor: f32,
 }
 
 impl FanConfig {
@@ -56,6 +58,39 @@ impl FanConfig {
             .set("high_temp", self.high_temp.to_string())
             .set("speed_curve", self.speed_curve.to_string())
             .set("always_full_speed", self.always_full_speed.to_string())
+            .set(
+                "speed_tolerance_percent",
+                self.speed_tolerance_percent.to_string(),
+            )
+            .set(
+                "settling_time_factor",
+                self.settling_time_factor.to_string(),
+            )
+    }
+
+    fn validated(self) -> Result<Self> {
+        if self.low_temp >= self.high_temp {
+            return Err(Error::InvalidConfigRange(
+                "low_temp must be less than high_temp",
+            ));
+        }
+        if self.speed_tolerance_percent < 0.0 || self.speed_tolerance_percent > 100.0 {
+            return Err(Error::InvalidConfigRange(
+                "speed_tolerance_percent must be between 0 and 100",
+            ));
+        }
+        if self.speed_tolerance_percent > 20.0 {
+            log::warn!(
+                "speed_tolerance_percent is {:.1}%, which is unusually high",
+                self.speed_tolerance_percent
+            );
+        }
+        if self.settling_time_factor < 0.0 || self.settling_time_factor > 60.0 {
+            return Err(Error::InvalidConfigRange(
+                "settling_time_factor must be between 0 and 60",
+            ));
+        }
+        Ok(self)
     }
 }
 
@@ -66,6 +101,8 @@ impl Default for FanConfig {
             high_temp: 75,
             speed_curve: SpeedCurve::Linear,
             always_full_speed: false,
+            speed_tolerance_percent: 5.0,
+            settling_time_factor: 5.0,
         }
     }
 }
@@ -81,12 +118,15 @@ impl TryFrom<&ini::Properties> for FanConfig {
                 .map_err(|_| Error::InvalidConfigValue(key))
         }
 
-        Ok(Self {
+        Self {
             low_temp: get_value(properties, "low_temp")?,
             high_temp: get_value(properties, "high_temp")?,
             speed_curve: get_value(properties, "speed_curve")?,
             always_full_speed: get_value(properties, "always_full_speed")?,
-        })
+            speed_tolerance_percent: get_value(properties, "speed_tolerance_percent")?,
+            settling_time_factor: get_value(properties, "settling_time_factor")?,
+        }
+        .validated()
     }
 }
 
@@ -109,7 +149,7 @@ fn generate_config_file(fan_count: NonZeroUsize) -> Result<Vec<FanConfig>> {
     let mut config_file = ini::Ini::new();
     let mut configs = Vec::with_capacity(fan_count.get());
     for i in 1..=fan_count.get() {
-        let config = FanConfig::default();
+        let config = FanConfig::default().validated()?;
         configs.push(config);
 
         let mut setter = config_file.with_section(Some(format!("Fan{i}")));

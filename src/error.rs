@@ -46,6 +46,8 @@ pub enum Error {
     MissingConfigValue(&'static str),
     #[error("Invalid {0} in config file")]
     InvalidConfigValue(&'static str),
+    #[error("{0}")]
+    InvalidConfigRange(&'static str),
 
     #[error("The fan directory structure doesn't have the expected layout")]
     FanPath,
