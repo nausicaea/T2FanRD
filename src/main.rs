@@ -12,7 +12,7 @@
 use std::{
     fs::File,
     io::{Read, Seek},
-    path::Path,
+    path::{Path, PathBuf},
     process::ExitCode,
     sync::{
         Arc,
@@ -21,7 +21,7 @@ use std::{
 };
 
 use arraydeque::ArrayDeque;
-use fan_controller::{Fan, FanController};
+use fan_controller::FanController;
 use nonempty::NonEmpty as NonEmptyVec;
 use signal_hook::consts::{SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 use signal_hook::flag as signal_flag;
@@ -68,7 +68,7 @@ fn get_current_euid() -> libc::uid_t {
     unsafe { libc::geteuid() }
 }
 
-fn find_fans() -> Result<NonEmptyVec<Fan>> {
+fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
     // /sys/class/hwmon/hwmon*/device/name == "applesmc"
     // /sys/class/hwmon/hwmon*/device/fan*
     let mut fans = Vec::default();
@@ -92,7 +92,7 @@ fn find_fans() -> Result<NonEmptyVec<Fan>> {
                 .ok_or(Error::NoFan)?;
             #[allow(clippy::unnecessary_to_owned)]
             fan_input.set_file_name(fan_name.to_string());
-            fans.push(Fan::new(fan_input));
+            fans.push(fan_input);
         }
     }
 
@@ -192,8 +192,8 @@ fn start_temp_loop(
         }
 
         let sum_temp: u32 = temps.iter().map(|t| *t as u32).sum();
-        let mean_temp: u8 = u8::try_from(sum_temp / (temps.len() as u32))
-            .map_err(Error::TempMean)?;
+        let mean_temp: u8 =
+            u8::try_from(sum_temp / (temps.len() as u32)).map_err(Error::TempMean)?;
         if mean_temp == last_temp {
             std::thread::sleep(std::time::Duration::from_secs(1));
             was_long_sleep = true;
