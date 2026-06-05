@@ -82,11 +82,7 @@ impl FanController {
     }
 
     pub fn set_speed(&mut self, mut speed: u32) -> Result<()> {
-        if speed < self.min_speed {
-            speed = self.min_speed;
-        } else if speed > self.max_speed {
-            speed = self.max_speed;
-        }
+        speed = speed.clamp(self.min_speed, self.max_speed);
 
         log::info!("Setting fan speed to {speed}");
         write_trunc!(&mut self.output_file, "{speed}").map_err(Error::FanWrite)?;
