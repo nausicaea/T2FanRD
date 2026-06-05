@@ -30,7 +30,10 @@ pub struct FanController {
 impl FanController {
     pub fn new(fan: PathBuf, config: FanConfig) -> Result<Self> {
         fn with_suffix(mut path: PathBuf, suffix: &str) -> Result<PathBuf> {
-            let file_name = path.file_name().and_then(|file_name| file_name.to_str()).ok_or(Error::FanPath)?;
+            let file_name = path
+                .file_name()
+                .and_then(|file_name| file_name.to_str())
+                .ok_or(Error::FanPath)?;
             path.set_file_name(format!("{file_name}{suffix}"));
             Ok(path)
         }
