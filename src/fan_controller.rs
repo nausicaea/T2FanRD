@@ -1,7 +1,4 @@
-use std::{
-    io::Write,
-    path::PathBuf,
-};
+use std::{io::Write, path::PathBuf};
 
 use crate::{
     config::{FanConfig, SpeedCurve},
@@ -83,8 +80,7 @@ impl FanController {
     }
 
     pub fn set_manual(&mut self, enabled: bool) -> Result<()> {
-        write_trunc!(&mut self.manual_file, "{}", usize::from(enabled))
-            .map_err(Error::FanWrite)?;
+        write_trunc!(&mut self.manual_file, "{}", usize::from(enabled)).map_err(Error::FanWrite)?;
         Ok(())
     }
 
