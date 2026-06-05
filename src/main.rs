@@ -143,7 +143,13 @@ fn main() -> ExitCode {
     match real_main() {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
+            use std::error::Error;
             log::error!("{err}");
+            let mut source = err.source();
+            while let Some(cause) = source {
+                log::error!("  caused by: {cause}");
+                source = cause.source();
+            }
             ExitCode::FAILURE
         }
     }
