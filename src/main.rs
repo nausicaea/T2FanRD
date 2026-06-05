@@ -56,10 +56,12 @@ fn main() -> ExitCode {
 fn real_main() -> Result<()> {
     let args = Args::parse();
 
+    #[cfg(feature = "root_check")]
     if get_current_euid() != 0 {
         return Err(Error::NotRoot);
     }
 
+    #[cfg(feature = "flock")]
     let _lock = acquire_lock_file(LOCK_FILE)?;
 
     let mut temp_buffer = String::new();
