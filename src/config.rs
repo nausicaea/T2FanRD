@@ -175,6 +175,7 @@ fn generate_config_file<P: AsRef<Path>>(
 pub fn load_fan_configs<P: AsRef<Path>>(
     config: P,
     fans: NonEmptyVec<PathBuf>,
+    temp_buf: &mut String,
 ) -> Result<NonEmptyVec<FanController>> {
     let fan_count = fans.len_nonzero();
     let configs = match std::fs::read_to_string(&config) {
@@ -195,7 +196,7 @@ pub fn load_fan_configs<P: AsRef<Path>>(
     let fans = fans
         .into_iter()
         .zip(configs)
-        .map(|(fan, config)| FanController::new(fan, config))
+        .map(|(fan, config)| FanController::new(fan, config, temp_buf))
         .collect::<Result<_>>()?;
 
     Ok(NonEmptyVec::from_vec(fans).unwrap())

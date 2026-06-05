@@ -18,14 +18,6 @@ pub enum Error {
     #[error("Temperature mean does not fit into u8")]
     TempCast(#[source] std::num::TryFromIntError),
 
-    #[error("Cannot read minimum fan speed")]
-    MinSpeedRead(#[source] std::io::Error),
-    #[error("Cannot parse minimum fan speed")]
-    MinSpeedParse(#[source] std::num::ParseIntError),
-    #[error("Cannot read maximum fan speed")]
-    MaxSpeedRead(#[source] std::io::Error),
-    #[error("Cannot parse maximum fan speed")]
-    MaxSpeedParse(#[source] std::num::ParseIntError),
     #[error("Cannot read actual fan speed")]
     ActualSpeedRead(#[source] std::io::Error),
     #[error("Cannot parse actual fan speed")]
@@ -86,11 +78,15 @@ pub enum FanError {
     #[error("The fan directory structure doesn't have the expected layout")]
     Path,
     #[error("Cannot open fan controller handle")]
-    Open(#[source] std::io::Error),
+    Open(&'static str, #[source] std::io::Error),
+    #[error("Cannot read fan controller handle")]
+    Read(&'static str, #[source] std::io::Error),
     #[error("Cannot write to fan controller")]
     Write(#[source] std::io::Error),
     #[error("Cannot complete search for fans")]
     Search(#[source] std::io::Error),
+    #[error("Cannot parse fan controller output")]
+    Parse(&'static str, #[source] std::num::ParseIntError),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

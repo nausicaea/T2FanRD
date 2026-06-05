@@ -38,8 +38,8 @@ pub struct FanController {
 }
 
 impl FanController {
-    pub fn new(fan: PathBuf, config: FanConfig) -> Result<Self> {
-        fn with_suffix(mut path: PathBuf, suffix: &str) -> Result<PathBuf, Error> {
+    pub fn new(fan: PathBuf, config: FanConfig, temp_buf: &mut String) -> Result<Self> {
+        fn with_suffix(mut path: PathBuf, suffix: &'static str) -> Result<PathBuf> {
             let file_name = path
                 .file_name()
                 .and_then(|file_name| file_name.to_str())
@@ -48,7 +48,7 @@ impl FanController {
             Ok(path)
         }
 
-        fn open_with_suffix(path: PathBuf, suffix: &str, read_only: bool) -> Result<File, Error> {
+        fn open_with_suffix(path: PathBuf, suffix: &'static str, read_only: bool) -> Result<File> {
             let mut opt = std::fs::OpenOptions::new();
             if read_only {
                 opt.read(true);
@@ -56,20 +56,29 @@ impl FanController {
                 opt.write(true);
             }
             opt.open(with_suffix(path.clone(), suffix)?)
-                .map_err(|e| Error::Fan(path, FanError::Open(e)))
+                .map_err(|e| Error::Fan(path, FanError::Open(suffix, e)))
         }
 
-        let min_speed = std::fs::read_to_string(with_suffix(fan.clone(), "_min")?)
-            .map_err(Error::MinSpeedRead)?
-            .trim()
-            .parse()
-            .map_err(Error::MinSpeedParse)?;
-
-        let max_speed = std::fs::read_to_string(with_suffix(fan.clone(), "_max")?)
-            .map_err(Error::MaxSpeedRead)?
-            .trim_end()
-            .parse()
-            .map_err(Error::MaxSpeedParse)?;
+        let min_speed = open_with_suffix(fan.clone(), "_min", true).and_then(|mut fan_min| {
+            temp_buf.clear();
+            fan_min
+                .read_to_string(temp_buf)
+                .map_err(|e| Error::Fan(fan.clone(), FanError::Read("_min", e)))?;
+            temp_buf
+                .trim()
+                .parse()
+                .map_err(|e| Error::Fan(fan.clone(), FanError::Parse("_min", e)))
+        })?;
+        let max_speed = open_with_suffix(fan.clone(), "_max", true).and_then(|mut fan_max| {
+            temp_buf.clear();
+            fan_max
+                .read_to_string(temp_buf)
+                .map_err(|e| Error::Fan(fan.clone(), FanError::Read("_max", e)))?;
+            temp_buf
+                .trim()
+                .parse()
+                .map_err(|e| Error::Fan(fan.clone(), FanError::Parse("_max", e)))
+        })?;
 
         let manual_file = open_with_suffix(fan.clone(), "_manual", false)?;
         let output_file = open_with_suffix(fan.clone(), "_output", false)?;

@@ -65,7 +65,7 @@ fn real_main() -> Result<()> {
     let mut temp_buffer = String::new();
 
     let fans = find_fans()?;
-    let mut fan_controllers = load_fan_configs(args.config, fans)?;
+    let mut fan_controllers = load_fan_configs(args.config, fans, &mut temp_buffer)?;
     let cpu_temp_file = find_cpu_temp_file(&mut temp_buffer)?;
     let gpu_temp_file = find_gpu_temp_file(&mut temp_buffer)?;
 
