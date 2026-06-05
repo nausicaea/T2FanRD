@@ -100,8 +100,8 @@ fn read_temp_file(temp_file: &mut File, temp_buf: &mut String) -> Result<u8> {
     temp_buf
         .trim_end()
         .parse::<u32>()
-        .map(|t| (t / 1000) as u8)
         .map_err(Error::TempParse)
+        .and_then(|t| u8::try_from(t / 1000).map_err(Error::TempCast))
 }
 
 fn find_temp_file(temps: glob::Paths, temp_buf: &mut String) -> Option<File> {
@@ -185,8 +185,9 @@ fn start_temp_loop(
         }
 
         let sum_temp: u32 = temps.iter().map(|t| u32::from(*t)).sum();
-        let mean_temp: u8 =
-            u8::try_from(sum_temp / (temps.len() as u32)).map_err(Error::TempMean)?;
+        let mean_temp: u8 = u32::try_from(temps.len())
+            .and_then(|temps_len| u8::try_from(sum_temp / temps_len))
+            .map_err(Error::TempCast)?;
         if mean_temp == last_temp {
             std::thread::sleep(std::time::Duration::from_secs(1));
             was_long_sleep = true;

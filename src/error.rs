@@ -14,7 +14,7 @@ pub enum Error {
     #[error("Temporature sensor cannot be parsed")]
     TempParse(#[source] std::num::ParseIntError),
     #[error("Temperature mean does not fit into u8")]
-    TempMean(#[source] std::num::TryFromIntError),
+    TempCast(#[source] std::num::TryFromIntError),
 
     #[error("Cannot read minimum fan speed")]
     MinSpeedRead(#[source] std::io::Error),
