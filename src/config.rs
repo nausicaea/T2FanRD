@@ -50,10 +50,10 @@ pub struct FanConfig {
 }
 
 impl FanConfig {
-    fn write_property<'a>(
+    fn write_property<'a, 'b: 'a>(
         self,
-        setter: &'a mut ini::SectionSetter<'a>,
-    ) -> &'a mut ini::SectionSetter<'a> {
+        setter: &'a mut ini::SectionSetter<'b>,
+    ) -> &'a mut ini::SectionSetter<'b> {
         setter
             .set("low_temp", self.low_temp.to_string())
             .set("high_temp", self.high_temp.to_string())
