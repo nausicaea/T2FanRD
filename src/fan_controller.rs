@@ -83,7 +83,7 @@ impl FanController {
     }
 
     pub fn set_manual(&mut self, enabled: bool) -> Result<()> {
-        write_trunc!(&mut self.manual_file, "{}", if enabled { 1 } else { 0 })
+        write_trunc!(&mut self.manual_file, "{}", usize::from(enabled))
             .map_err(Error::FanWrite)?;
         Ok(())
     }
