@@ -18,5 +18,4 @@ LABEL org.opencontainers.image.version="0.2.0"
 LABEL org.opencontainers.image.licenses="GPL-3.0-only"
 COPY manifest.yaml /
 COPY rootfs/ /rootfs/
-COPY --from=build --chown=root:root --chmod=0755 /workdir/target/x86_64-unknown-linux-musl/release/t2fanrd /rootfs/usr/local/sbin/t2fanrd
 COPY --from=build --chown=root:root --chmod=0755 /workdir/target/x86_64-unknown-linux-musl/release/t2fanrd /rootfs/usr/local/lib/containers/t2fanrd/t2fanrd
