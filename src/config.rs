@@ -102,7 +102,7 @@ impl Default for FanConfig {
             speed_curve: SpeedCurve::Linear,
             always_full_speed: false,
             speed_tolerance_percent: 10.0,
-            settling_time_factor: 5.0,
+            settling_time_factor: 10.0,
         }
     }
 }
