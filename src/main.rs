@@ -189,8 +189,8 @@ fn start_temp_loop(
         // CORRECTNESS: the cast to u32 can never fail, since the deque has limited size at
         // compile-time.
         #[allow(clippy::cast_possible_truncation)]
-        let mean_temp: u8 = u8::try_from(sum_temp / (temps.len() as u32))
-            .map_err(Error::TempCast)?;
+        let mean_temp: u8 =
+            u8::try_from(sum_temp / (temps.len() as u32)).map_err(Error::TempCast)?;
         if mean_temp == last_temp {
             std::thread::sleep(std::time::Duration::from_secs(1));
             was_long_sleep = true;
