@@ -1,4 +1,5 @@
 use std::{
+    fs::File,
     io::{Read, Seek, Write},
     path::PathBuf,
     time::{Duration, Instant},
@@ -6,7 +7,7 @@ use std::{
 
 use crate::{
     config::{FanConfig, SpeedCurve},
-    error::{Error, Result},
+    error::{Error, FanError, Result},
 };
 
 macro_rules! write_trunc {
@@ -38,13 +39,24 @@ pub struct FanController {
 
 impl FanController {
     pub fn new(fan: PathBuf, config: FanConfig) -> Result<Self> {
-        fn with_suffix(mut path: PathBuf, suffix: &str) -> Result<PathBuf> {
+        fn with_suffix(mut path: PathBuf, suffix: &str) -> Result<PathBuf, Error> {
             let file_name = path
                 .file_name()
                 .and_then(|file_name| file_name.to_str())
-                .ok_or(Error::FanPath)?;
+                .ok_or_else(|| Error::Fan(path.clone(), FanError::Path))?;
             path.set_file_name(format!("{file_name}{suffix}"));
             Ok(path)
+        }
+
+        fn open_with_suffix(path: PathBuf, suffix: &str, read_only: bool) -> Result<File, Error> {
+            let mut opt = std::fs::OpenOptions::new();
+            if read_only {
+                opt.read(true);
+            } else {
+                opt.write(true);
+            }
+            opt.open(with_suffix(path.clone(), suffix)?)
+                .map_err(|e| Error::Fan(path, FanError::Open(e)))
         }
 
         let min_speed = std::fs::read_to_string(with_suffix(fan.clone(), "_min")?)
@@ -59,24 +71,12 @@ impl FanController {
             .parse()
             .map_err(Error::MaxSpeedParse)?;
 
-        let mut open_options = std::fs::OpenOptions::new();
-        open_options.write(true);
-
-        let manual_file = open_options
-            .open(with_suffix(fan.clone(), "_manual")?)
-            .map_err(Error::FanOpen)?;
-
-        let output_file = open_options
-            .open(with_suffix(fan.clone(), "_output")?)
-            .map_err(Error::FanOpen)?;
-
-        let input_file = std::fs::OpenOptions::new()
-            .read(true)
-            .open(with_suffix(fan.clone(), "_input")?)
-            .map_err(Error::FanOpen)?;
+        let manual_file = open_with_suffix(fan.clone(), "_manual", false)?;
+        let output_file = open_with_suffix(fan.clone(), "_output", false)?;
+        let input_file = open_with_suffix(fan.clone(), "_input", true)?;
 
         let mut this = Self {
-            path: fan,
+            path: fan.clone(),
             manual_file,
             output_file,
             input_file,
@@ -96,13 +96,13 @@ impl FanController {
         );
 
         // Acquire manual control (see `Drop` impl)
-        this.set_manual(true)?;
+        this.set_manual(true).map_err(|e| Error::Fan(fan, e))?;
 
         Ok(this)
     }
 
-    fn set_manual(&mut self, enabled: bool) -> Result<()> {
-        write_trunc!(&mut self.manual_file, "{}", usize::from(enabled)).map_err(Error::FanWrite)?;
+    fn set_manual(&mut self, enabled: bool) -> Result<(), FanError> {
+        write_trunc!(&mut self.manual_file, "{}", usize::from(enabled)).map_err(FanError::Write)?;
         Ok(())
     }
 
@@ -113,7 +113,8 @@ impl FanController {
             return Ok(false);
         }
 
-        write_trunc!(&mut self.output_file, "{speed}").map_err(Error::FanWrite)?;
+        write_trunc!(&mut self.output_file, "{speed}")
+            .map_err(|e| Error::Fan(self.path.clone(), FanError::Write(e)))?;
 
         // Only start a new settling window when direction changes or
         // we're starting from a settled state, not on every incremental step.

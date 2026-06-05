@@ -39,14 +39,8 @@ pub enum Error {
     #[error("{1}: {path}", path=.0.display())]
     Config(PathBuf, #[source] ConfigError),
 
-    #[error("The fan directory structure doesn't have the expected layout")]
-    FanPath,
-    #[error("Cannot open fan controller handle")]
-    FanOpen(#[source] std::io::Error),
-    #[error("Cannot write to fan controller")]
-    FanWrite(#[source] std::io::Error),
-    #[error("Cannot complete search for fans")]
-    FanSearch(#[source] std::io::Error),
+    #[error("{1}: {path}", path=.0.display())]
+    Fan(PathBuf, #[source] FanError),
 
     #[error("Cannot setup shutdown signals")]
     Signal(#[source] std::io::Error),
@@ -85,6 +79,18 @@ pub enum ConfigError {
     InvalidValue(&'static str),
     #[error("{0}")]
     InvalidRange(&'static str),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum FanError {
+    #[error("The fan directory structure doesn't have the expected layout")]
+    Path,
+    #[error("Cannot open fan controller handle")]
+    Open(#[source] std::io::Error),
+    #[error("Cannot write to fan controller")]
+    Write(#[source] std::io::Error),
+    #[error("Cannot complete search for fans")]
+    Search(#[source] std::io::Error),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

@@ -22,6 +22,8 @@ use signal_hook::flag as signal_flag;
 use config::load_fan_configs;
 use error::{Error, Result};
 
+use crate::error::FanError;
+
 mod config;
 mod error;
 mod fan_controller;
@@ -118,7 +120,7 @@ fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
         let mut device_name = String::default();
         File::open(&path)
             .and_then(|mut f| f.read_to_string(&mut device_name))
-            .map_err(Error::FanSearch)?;
+            .map_err(|e| Error::Fan(path.clone(), FanError::Search(e)))?;
         if device_name.trim() != "applesmc" {
             continue;
         }
