@@ -3,11 +3,5 @@ container:
   entrypoint: ./t2fanrd
   security:
     writeableSysfs: true
-    readonlyPaths: []
-    maskedPaths: []
-depends:
-  - configuration: true
 restart: always
 logToConsole: true
-
-
