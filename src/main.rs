@@ -13,6 +13,7 @@ use std::{
 };
 
 use arraydeque::ArrayDeque;
+use clap::Parser;
 use fan_controller::FanController;
 use nonempty::NonEmpty as NonEmptyVec;
 use signal_hook::consts::{SIGHUP, SIGINT, SIGQUIT, SIGTERM};
@@ -29,11 +30,6 @@ mod fan_controller;
 compile_error!("This tool is only developed for Linux systems.");
 
 const LOCK_FILE: &str = "/run/t2fanrd.lock";
-
-#[cfg(debug_assertions)]
-const CONFIG_FILE: &str = "./t2fand.conf";
-#[cfg(not(debug_assertions))]
-const CONFIG_FILE: &str = "/etc/t2fand.conf";
 
 fn main() -> ExitCode {
     env_logger::builder().format_timestamp_secs().init();
@@ -56,6 +52,8 @@ fn main() -> ExitCode {
 }
 
 fn real_main() -> Result<()> {
+    let args = Args::parse();
+
     if get_current_euid() != 0 {
         return Err(Error::NotRoot);
     }
@@ -65,7 +63,7 @@ fn real_main() -> Result<()> {
     let mut temp_buffer = String::new();
 
     let fans = find_fans()?;
-    let mut fan_controllers = load_fan_configs(CONFIG_FILE, fans)?;
+    let mut fan_controllers = load_fan_configs(args.config, fans)?;
     let cpu_temp_file = find_cpu_temp_file(&mut temp_buffer)?;
     let gpu_temp_file = find_gpu_temp_file(&mut temp_buffer)?;
 
@@ -246,4 +244,12 @@ fn start_temp_loop(
     }
 
     Ok(())
+}
+
+/// Simple Fan Daemon for T2 Macs
+#[derive(Debug, Parser)]
+struct Args {
+    /// Specify a custom configuration file
+    #[arg(short, long, default_value = "/etc/t2fand.conf")]
+    config: PathBuf,
 }
