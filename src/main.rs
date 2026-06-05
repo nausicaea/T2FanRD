@@ -184,6 +184,8 @@ fn start_temp_loop(
         temps.push_back(temp);
         if was_long_sleep {
             // Avoid messing up the mean due to the longer sleep.
+            // Fill the window with the current reading to avoid the long-sleep sample being
+            // under-represented.
             for _ in 0..9 {
                 temps.push_back(temp);
             }
