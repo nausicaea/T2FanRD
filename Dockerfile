@@ -3,6 +3,7 @@ FROM --platform=${BUILDPLATFORM} docker.io/library/rust:1.96.0-alpine3.23 AS bui
 ARG FEATURES="-F observability"
 ARG RUSTFLAGS="-C target-feature=+crt-static"
 ARG TARGET=x86_64-unknown-linux-musl
+RUN apk add --no-cache openssl-dev
 WORKDIR /workdir
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo 'fn main() {}' > src/main.rs
