@@ -1,5 +1,6 @@
 ARG BUILDPLATFORM=linux/amd64
 FROM --platform=${BUILDPLATFORM} docker.io/library/rust:1.96.0-alpine3.23 AS build
+ARG FEATURES="-F observability"
 ARG RUSTFLAGS="-C target-feature=+crt-static"
 ARG TARGET=x86_64-unknown-linux-musl
 WORKDIR /workdir
@@ -7,7 +8,7 @@ COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo 'fn main() {}' > src/main.rs
 RUN cargo fetch --locked --target ${TARGET}
 COPY src/ ./src/
-RUN cargo build --frozen --release --target ${TARGET}
+RUN cargo build --frozen --release --target ${TARGET} ${FEATURES}
 
 FROM scratch
 LABEL org.opencontainers.image.title="t2fanrd"
