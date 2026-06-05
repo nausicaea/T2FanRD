@@ -64,6 +64,18 @@ fn real_main() -> Result<()> {
     #[cfg(feature = "flock")]
     let _lock = acquire_lock_file(LOCK_FILE)?;
 
+    #[cfg(feature = "observability")]
+    let _guard = sentry::init((
+        "https://23e76077454330611b3b02135082fc0c@o4505478415384576.ingest.us.sentry.io/4511514067664896",
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            // Capture user IPs and potentially sensitive headers when using HTTP server integrations
+            // see https://docs.sentry.io/platforms/rust/data-management/data-collected for more info
+            send_default_pii: true,
+            ..Default::default()
+        },
+    ));
+
     let mut temp_buffer = String::new();
 
     let fans = find_fans()?;
