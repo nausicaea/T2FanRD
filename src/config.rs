@@ -7,7 +7,7 @@ use std::{
 
 use nonempty::NonEmpty as NonEmptyVec;
 
-use crate::{Error, Result, fan_controller::FanController};
+use crate::{Error, Result, error::ConfigError, fan_controller::FanController};
 
 #[derive(Clone, Copy, Debug)]
 pub enum SpeedCurve {
@@ -68,14 +68,14 @@ impl FanConfig {
             )
     }
 
-    fn validated(self) -> Result<Self> {
+    fn validated(self) -> Result<Self, ConfigError> {
         if self.low_temp >= self.high_temp {
-            return Err(Error::InvalidConfigRange(
+            return Err(ConfigError::InvalidRange(
                 "low_temp must be less than high_temp",
             ));
         }
         if self.speed_tolerance_percent < 0.0 || self.speed_tolerance_percent > 100.0 {
-            return Err(Error::InvalidConfigRange(
+            return Err(ConfigError::InvalidRange(
                 "speed_tolerance_percent must be between 0 and 100",
             ));
         }
@@ -86,7 +86,7 @@ impl FanConfig {
             );
         }
         if self.settling_time_factor < 0.0 || self.settling_time_factor > 60.0 {
-            return Err(Error::InvalidConfigRange(
+            return Err(ConfigError::InvalidRange(
                 "settling_time_factor must be between 0 and 60",
             ));
         }
@@ -108,14 +108,17 @@ impl Default for FanConfig {
 }
 
 impl TryFrom<&ini::Properties> for FanConfig {
-    type Error = Error;
+    type Error = ConfigError;
 
     fn try_from(properties: &ini::Properties) -> Result<Self, Self::Error> {
-        fn get_value<V: FromStr>(properties: &ini::Properties, key: &'static str) -> Result<V> {
-            let value_str = properties.get(key).ok_or(Error::MissingConfigValue(key))?;
+        fn get_value<V: FromStr>(
+            properties: &ini::Properties,
+            key: &'static str,
+        ) -> Result<V, ConfigError> {
+            let value_str = properties.get(key).ok_or(ConfigError::MissingValue(key))?;
             value_str
                 .parse()
-                .map_err(|_| Error::InvalidConfigValue(key))
+                .map_err(|_| ConfigError::InvalidValue(key))
         }
 
         Self {
@@ -130,14 +133,17 @@ impl TryFrom<&ini::Properties> for FanConfig {
     }
 }
 
-fn parse_config_file(file_raw: &str, fan_count: NonZeroUsize) -> Result<Vec<FanConfig>> {
+fn parse_config_file(
+    file_raw: &str,
+    fan_count: NonZeroUsize,
+) -> Result<Vec<FanConfig>, ConfigError> {
     let file = ini::Ini::load_from_str(file_raw)?;
     let mut configs = Vec::with_capacity(fan_count.get());
 
     for i in 1..=fan_count.get() {
         let section = file
             .section(Some(format!("Fan{i}")))
-            .ok_or(Error::MissingFanConfig(i))?;
+            .ok_or(ConfigError::MissingFan(i))?;
 
         configs.push(FanConfig::try_from(section)?);
     }
@@ -148,7 +154,7 @@ fn parse_config_file(file_raw: &str, fan_count: NonZeroUsize) -> Result<Vec<FanC
 fn generate_config_file<P: AsRef<Path>>(
     config: P,
     fan_count: NonZeroUsize,
-) -> Result<Vec<FanConfig>> {
+) -> Result<Vec<FanConfig>, ConfigError> {
     let mut config_file = ini::Ini::new();
     let mut configs = Vec::with_capacity(fan_count.get());
     for i in 1..=fan_count.get() {
@@ -161,7 +167,7 @@ fn generate_config_file<P: AsRef<Path>>(
 
     config_file
         .write_to_file(config)
-        .map_err(Error::ConfigCreate)?;
+        .map_err(ConfigError::Create)?;
 
     Ok(configs)
 }
@@ -172,9 +178,18 @@ pub fn load_fan_configs<P: AsRef<Path>>(
 ) -> Result<NonEmptyVec<FanController>> {
     let fan_count = fans.len_nonzero();
     let configs = match std::fs::read_to_string(&config) {
-        Ok(file_raw) => parse_config_file(&file_raw, fan_count)?,
-        Err(err) if err.kind() == ErrorKind::NotFound => generate_config_file(config, fan_count)?,
-        Err(err) => return Err(Error::ConfigRead(err)),
+        Ok(file_raw) => parse_config_file(&file_raw, fan_count)
+            .map_err(|e| Error::Config(config.as_ref().to_path_buf(), e))?,
+        Err(err) if err.kind() == ErrorKind::NotFound => {
+            generate_config_file(&config, fan_count)
+                .map_err(|e| Error::Config(config.as_ref().to_path_buf(), e))?
+        }
+        Err(err) => {
+            return Err(Error::Config(
+                config.as_ref().to_path_buf(),
+                ConfigError::Read(err),
+            ));
+        }
     };
 
     let fans = fans

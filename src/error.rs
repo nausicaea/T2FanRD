@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("T2 Fan Daemon must be run as root")]
@@ -34,24 +36,8 @@ pub enum Error {
     #[error("T2 Fan Daemon is already running")]
     AlreadyRunning,
 
-    #[error("Cannot create default config file")]
-    ConfigCreate(#[source] std::io::Error),
-    #[error("Cannot read config file")]
-    ConfigRead(#[source] std::io::Error),
-    #[error("Cannot parse config file")]
-    ConfigParse(
-        #[from]
-        #[source]
-        ini::ParseError,
-    ),
-    #[error("Missing Fan{0} in config file")]
-    MissingFanConfig(usize),
-    #[error("Missing {0} in config file")]
-    MissingConfigValue(&'static str),
-    #[error("Invalid {0} in config file")]
-    InvalidConfigValue(&'static str),
-    #[error("{0}")]
-    InvalidConfigRange(&'static str),
+    #[error("{1}: {path}", path=.0.display())]
+    Config(PathBuf, #[source] ConfigError),
 
     #[error("The fan directory structure doesn't have the expected layout")]
     FanPath,
@@ -77,6 +63,28 @@ pub enum Error {
         #[source]
         glob::GlobError,
     ),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ConfigError {
+    #[error("Cannot read config file")]
+    Read(#[source] std::io::Error),
+    #[error("Cannot create default config file")]
+    Create(#[source] std::io::Error),
+    #[error("Cannot parse config file")]
+    Parse(
+        #[from]
+        #[source]
+        ini::ParseError,
+    ),
+    #[error("Missing Fan{0} in config file")]
+    MissingFan(usize),
+    #[error("Missing {0} in config file")]
+    MissingValue(&'static str),
+    #[error("Invalid {0} in config file")]
+    InvalidValue(&'static str),
+    #[error("{0}")]
+    InvalidRange(&'static str),
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
