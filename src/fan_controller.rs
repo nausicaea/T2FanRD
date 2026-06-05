@@ -103,16 +103,31 @@ impl FanController {
         let low_temp = u32::from(self.config.low_temp);
         let high_temp = u32::from(self.config.high_temp);
         match self.config.speed_curve {
+            #[allow(
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                clippy::cast_precision_loss
+            )]
             SpeedCurve::Linear => {
                 ((temp - low_temp) as f32 / (high_temp - low_temp) as f32
                     * (self.max_speed - self.min_speed) as f32) as u32
                     + self.min_speed
             }
+            #[allow(
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                clippy::cast_precision_loss
+            )]
             SpeedCurve::Exponential => {
                 ((temp - low_temp).pow(3) as f32 / (high_temp - low_temp).pow(3) as f32
                     * (self.max_speed - self.min_speed) as f32) as u32
                     + self.min_speed
             }
+            #[allow(
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                clippy::cast_precision_loss
+            )]
             SpeedCurve::Logarithmic => {
                 (((temp - low_temp) as f32).log((high_temp - low_temp) as f32)
                     * (self.max_speed - self.min_speed) as f32) as u32
