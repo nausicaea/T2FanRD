@@ -47,6 +47,8 @@ pub enum Error {
     #[error("Invalid {0} in config file")]
     InvalidConfigValue(&'static str),
 
+    #[error("The fan directory structure doesn't have the expected layout")]
+    FanPath,
     #[error("Cannot open fan controller handle")]
     FanOpen(#[source] std::io::Error),
     #[error("Cannot write to fan controller")]
