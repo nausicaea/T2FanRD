@@ -1,5 +1,5 @@
 use std::{
-    io::{IsTerminal, Write},
+    io::Write,
     path::PathBuf,
 };
 
@@ -95,14 +95,7 @@ impl FanController {
             speed = self.max_speed;
         }
 
-        {
-            let mut stdout = std::io::stdout().lock();
-            if stdout.is_terminal() {
-                log::info!("Setting fan speed to {speed}");
-                let _ = stdout.flush();
-            }
-        }
-
+        log::info!("Setting fan speed to {speed}");
         write_trunc!(&mut self.output_file, "{speed}").map_err(Error::FanWrite)?;
         Ok(())
     }
