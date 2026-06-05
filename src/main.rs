@@ -30,6 +30,11 @@ compile_error!("This tool is only developed for Linux systems.");
 
 const LOCK_FILE: &str = "/run/t2fanrd.lock";
 
+#[cfg(debug_assertions)]
+const CONFIG_FILE: &str = "./t2fand.conf";
+#[cfg(not(debug_assertions))]
+const CONFIG_FILE: &str = "/etc/t2fand.conf";
+
 fn acquire_lock_file<P: AsRef<Path>>(lock_file: P) -> Result<File> {
     // CORRECTNESS: we don't write to the file, so truncation is explicitly left undefined
     #[allow(clippy::suspicious_open_options)]
@@ -228,7 +233,7 @@ fn real_main() -> Result<()> {
     let mut temp_buffer = String::new();
 
     let fans = find_fans()?;
-    let mut fan_controllers = load_fan_configs(fans)?;
+    let mut fan_controllers = load_fan_configs(CONFIG_FILE, fans)?;
     let cpu_temp_file = find_cpu_temp_file(&mut temp_buffer)?;
     let gpu_temp_file = find_gpu_temp_file(&mut temp_buffer)?;
 

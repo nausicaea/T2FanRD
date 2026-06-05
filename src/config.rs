@@ -1,13 +1,13 @@
-use std::{io::ErrorKind, num::NonZeroUsize, path::PathBuf, str::FromStr};
+use std::{
+    io::ErrorKind,
+    num::NonZeroUsize,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use nonempty::NonEmpty as NonEmptyVec;
 
 use crate::{Error, Result, fan_controller::FanController};
-
-#[cfg(debug_assertions)]
-const CONFIG_FILE: &str = "./t2fand.conf";
-#[cfg(not(debug_assertions))]
-const CONFIG_FILE: &str = "/etc/t2fand.conf";
 
 #[derive(Clone, Copy, Debug)]
 pub enum SpeedCurve {
@@ -145,7 +145,10 @@ fn parse_config_file(file_raw: &str, fan_count: NonZeroUsize) -> Result<Vec<FanC
     Ok(configs)
 }
 
-fn generate_config_file(fan_count: NonZeroUsize) -> Result<Vec<FanConfig>> {
+fn generate_config_file<P: AsRef<Path>>(
+    config: P,
+    fan_count: NonZeroUsize,
+) -> Result<Vec<FanConfig>> {
     let mut config_file = ini::Ini::new();
     let mut configs = Vec::with_capacity(fan_count.get());
     for i in 1..=fan_count.get() {
@@ -157,17 +160,20 @@ fn generate_config_file(fan_count: NonZeroUsize) -> Result<Vec<FanConfig>> {
     }
 
     config_file
-        .write_to_file(CONFIG_FILE)
+        .write_to_file(config)
         .map_err(Error::ConfigCreate)?;
 
     Ok(configs)
 }
 
-pub fn load_fan_configs(fans: NonEmptyVec<PathBuf>) -> Result<NonEmptyVec<FanController>> {
+pub fn load_fan_configs<P: AsRef<Path>>(
+    config: P,
+    fans: NonEmptyVec<PathBuf>,
+) -> Result<NonEmptyVec<FanController>> {
     let fan_count = fans.len_nonzero();
-    let configs = match std::fs::read_to_string(CONFIG_FILE) {
+    let configs = match std::fs::read_to_string(&config) {
         Ok(file_raw) => parse_config_file(&file_raw, fan_count)?,
-        Err(err) if err.kind() == ErrorKind::NotFound => generate_config_file(fan_count)?,
+        Err(err) if err.kind() == ErrorKind::NotFound => generate_config_file(config, fan_count)?,
         Err(err) => return Err(Error::ConfigRead(err)),
     };
 
