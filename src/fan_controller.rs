@@ -29,33 +29,33 @@ pub struct FanController {
 
 impl FanController {
     pub fn new(fan: PathBuf, config: FanConfig) -> Result<Self> {
-        fn join_suffix(mut path: PathBuf, suffix: &str) -> PathBuf {
-            let file_name = path.file_name().unwrap().to_str().unwrap();
+        fn with_suffix(mut path: PathBuf, suffix: &str) -> Result<PathBuf> {
+            let file_name = path.file_name().and_then(|file_name| file_name.to_str()).ok_or(Error::FanPath)?;
             path.set_file_name(format!("{file_name}{suffix}"));
-            path
+            Ok(path)
         }
 
-        let min_speed = std::fs::read_to_string(join_suffix(fan.clone(), "_min"))
+        let min_speed = std::fs::read_to_string(with_suffix(fan.clone(), "_min")?)
             .map_err(Error::MinSpeedRead)?
             .trim()
             .parse()
             .map_err(Error::MinSpeedParse)?;
 
-        let max_speed = std::fs::read_to_string(join_suffix(fan.clone(), "_max"))
+        let max_speed = std::fs::read_to_string(with_suffix(fan.clone(), "_max")?)
             .map_err(Error::MaxSpeedRead)?
             .trim_end()
             .parse()
             .map_err(Error::MaxSpeedParse)?;
 
         let mut open_options = std::fs::OpenOptions::new();
-        open_options.write(true).truncate(true);
+        open_options.write(true);
 
         let manual_file = open_options
-            .open(join_suffix(fan.clone(), "_manual"))
+            .open(with_suffix(fan.clone(), "_manual")?)
             .map_err(Error::FanOpen)?;
 
         let output_file = open_options
-            .open(join_suffix(fan, "_output"))
+            .open(with_suffix(fan, "_output")?)
             .map_err(Error::FanOpen)?;
 
         let this = Self {
