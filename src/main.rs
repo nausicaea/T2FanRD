@@ -11,7 +11,7 @@
 
 use std::{
     fs::File,
-    io::{ErrorKind, Read, Seek},
+    io::{Read, Seek},
     path::Path,
     process::ExitCode,
     sync::{
@@ -36,10 +36,32 @@ mod fan_controller;
 #[cfg(not(any(target_os = "linux", debug_assertions)))]
 compile_error!("This tool is only developed for Linux systems.");
 
-#[cfg(debug_assertions)]
-const PID_FILE: &str = "t2fand.pid";
-#[cfg(not(debug_assertions))]
-const PID_FILE: &str = "/run/t2fand.pid";
+const LOCK_FILE: &str = "/run/t2fanrd.lock";
+
+fn acquire_lock_file<P: AsRef<Path>>(lock_file: P) -> Result<File> {
+    #[allow(clippy::suspicious_open_options)]
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .open(lock_file)
+        .map_err(Error::LockWrite)?;
+
+    // SAFETY: valid fd, correct flock constants
+    let ret = unsafe {
+        use std::os::unix::io::AsRawFd;
+        libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB)
+    };
+
+    if ret != 0 {
+        let err = std::io::Error::last_os_error();
+        if err.kind() == std::io::ErrorKind::WouldBlock {
+            return Err(Error::AlreadyRunning);
+        }
+        return Err(Error::LockWrite(err));
+    }
+
+    Ok(file) // keep File alive — lock released when dropped
+}
 
 fn get_current_euid() -> libc::uid_t {
     // SAFETY: FFI call with no preconditions
@@ -74,22 +96,6 @@ fn find_fans() -> Result<NonEmptyVec<Fan>> {
     }
 
     NonEmptyVec::from_vec(fans).ok_or(Error::NoFan)
-}
-
-fn check_pid_file<P: AsRef<Path>>(pid_file: P) -> Result<()> {
-    match std::fs::read_to_string(&pid_file) {
-        Ok(pid) => {
-            let proc_path = std::path::Path::new("/proc").join(pid);
-            if proc_path.exists() {
-                return Err(Error::AlreadyRunning);
-            }
-        }
-        Err(err) if err.kind() == ErrorKind::NotFound => {}
-        Err(err) => return Err(Error::PidRead(err)),
-    }
-
-    let current_pid = std::process::id().to_string();
-    std::fs::write(&pid_file, current_pid).map_err(Error::PidWrite)
 }
 
 fn read_temp_file(temp_file: &mut File, temp_buf: &mut String) -> Result<u8> {
@@ -206,7 +212,7 @@ fn real_main() -> Result<()> {
         return Err(Error::NotRoot);
     }
 
-    check_pid_file(PID_FILE)?;
+    let lock = acquire_lock_file(LOCK_FILE)?;
 
     let mut temp_buffer = String::new();
 
@@ -230,5 +236,6 @@ fn real_main() -> Result<()> {
         fan.set_manual(false)?;
     }
 
-    res.and_then(|()| std::fs::remove_file(PID_FILE).map_err(Error::PidDelete))
+    drop(lock);
+    res
 }

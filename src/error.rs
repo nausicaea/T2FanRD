@@ -23,12 +23,8 @@ pub enum Error {
     #[error("Cannot parse maximum fan speed")]
     MaxSpeedParse(#[source] std::num::ParseIntError),
 
-    #[error("Cannot read pid file")]
-    PidRead(#[source] std::io::Error),
-    #[error("Cannot write pid file")]
-    PidWrite(#[source] std::io::Error),
-    #[error("Cannot delete pid file")]
-    PidDelete(#[source] std::io::Error),
+    #[error("Cannot write process lock file")]
+    LockWrite(#[source] std::io::Error),
     #[error("T2 Fan Daemon is already running")]
     AlreadyRunning,
 
