@@ -24,6 +24,10 @@ pub enum Error {
     MaxSpeedRead(#[source] std::io::Error),
     #[error("Cannot parse maximum fan speed")]
     MaxSpeedParse(#[source] std::num::ParseIntError),
+    #[error("Cannot read actual fan speed")]
+    ActualSpeedRead(#[source] std::io::Error),
+    #[error("Cannot parse actual fan speed")]
+    ActualSpeedParse(#[source] std::num::ParseIntError),
 
     #[error("Cannot write process lock file")]
     LockWrite(#[source] std::io::Error),

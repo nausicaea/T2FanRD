@@ -205,6 +205,9 @@ fn start_temp_loop(
                 if fan.set_speed(speed)? {
                     log::info!("temp={temp}°C, mean={mean_temp}°C, speed={speed} RPM");
                 }
+                if let Err(e) = fan.check_speed(&mut temp_buffer) {
+                    log::error!("Cannot validate the actual fan speed: {e}");
+                }
             }
 
             std::thread::sleep(std::time::Duration::from_millis(100));
