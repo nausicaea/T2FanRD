@@ -189,15 +189,16 @@ fn start_temp_loop(
             }
         }
 
-        let sum_temp: u16 = temps.iter().map(|t| *t as u16).sum();
-        let mean_temp = sum_temp / (temps.len() as u16);
+        let sum_temp: u32 = temps.iter().map(|t| *t as u32).sum();
+        let mean_temp: u8 = u8::try_from(sum_temp / (temps.len() as u32))
+            .map_err(Error::TempMean)?;
         if mean_temp == last_temp {
             std::thread::sleep(std::time::Duration::from_secs(1));
             was_long_sleep = true;
         } else {
             last_temp = mean_temp;
             for fan in fans.iter_mut() {
-                fan.set_speed(fan.calc_speed(mean_temp as u8))?;
+                fan.set_speed(fan.calc_speed(mean_temp))?;
             }
 
             std::thread::sleep(std::time::Duration::from_millis(100));
