@@ -33,7 +33,7 @@ pub enum Error {
     #[error("{1}: {path}", path=.0.display())]
     Config(PathBuf, #[source] ConfigError),
 
-    #[error("{1}: {path}", path=.1.component().and_then(|c| c.to_path(&.0).ok()).map(|p| format!("{}", p.display())).unwrap_or_default())]
+    #[error("{1}: {path}", path=.1.component().map(|c| format!("{}", c.to_path(&.0).display())).unwrap_or_default())]
     Fan(PathBuf, #[source] FanError),
 
     #[error("Cannot setup shutdown signals")]
@@ -79,15 +79,13 @@ pub enum ConfigError {
 pub enum FanError {
     #[error("Cannot complete search for fans")]
     Search(#[source] std::io::Error),
-    #[error("The fan directory structure doesn't have the expected layout")]
-    Path,
-    #[error("Cannot open fan controller handle")]
+    #[error("Cannot open fan controller handle for {0}")]
     Open(FanComponent, #[source] std::io::Error),
-    #[error("Cannot read fan controller handle")]
+    #[error("Cannot read fan controller handle for {0}")]
     Read(FanComponent, #[source] std::io::Error),
-    #[error("Cannot write to fan controller")]
+    #[error("Cannot write to fan controller for {0}")]
     Write(FanComponent, #[source] std::io::Error),
-    #[error("Cannot parse fan controller output")]
+    #[error("Cannot parse fan controller output for {0}")]
     Parse(FanComponent, #[source] std::num::ParseIntError),
 }
 
@@ -98,7 +96,7 @@ impl FanError {
             | FanError::Read(c, _)
             | FanError::Write(c, _)
             | FanError::Parse(c, _) => Some(*c),
-            _ => None,
+            FanError::Search(_) => None,
         }
     }
 }

@@ -46,7 +46,7 @@ impl FanController {
             } else {
                 opt.write(true);
             }
-            opt.open(component.to_path(&path)?)
+            opt.open(component.to_path(&path))
                 .map_err(|e| Error::Fan(path, FanError::Open(component, e)))
         }
 
@@ -92,8 +92,8 @@ impl FanController {
         log::info!(
             "Initialized fan: path={}, min={} RPM, max={} RPM, config={:#?}",
             this.path.display(),
-            &this.min_speed,
-            &this.max_speed,
+            this.min_speed,
+            this.max_speed,
             &this.config,
         );
 
@@ -164,8 +164,9 @@ impl FanController {
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         if actual_speed < stall_threshold as u32 {
             log::error!(
-                "Fan stall detected! actual={actual_speed} RPM, \
+                "Fan stall detected at {}! actual={actual_speed} RPM, \
                  min={} RPM, threshold={stall_threshold:.0} RPM",
+                self.path.display(),
                 self.min_speed,
             );
             return Ok(());
@@ -195,9 +196,10 @@ impl FanController {
 
         if actual_speed < lower || actual_speed > upper {
             log::warn!(
-                "Fan speed out of tolerance: target={current_speed} RPM, \
+                "Fan speed out of tolerance at {}: target={current_speed} RPM, \
                  actual={actual_speed} RPM, \
                  tolerance=±{tolerance_rpm} RPM ({:.1}%)",
+                self.path.display(),
                 self.config.speed_tolerance_percent,
             );
         }
@@ -273,12 +275,12 @@ pub enum FanComponent {
 }
 
 impl FanComponent {
-    pub fn to_path(self, base: &Path) -> Result<PathBuf> {
-        fn add_suffix(base: &Path, suffix: &'static str) -> Result<PathBuf> {
+    pub fn to_path(self, base: &Path) -> PathBuf {
+        fn add_suffix(base: &Path, suffix: &'static str) -> PathBuf {
             let file_name = base
                 .file_name()
-                .ok_or_else(|| Error::Fan(base.to_path_buf(), FanError::Path))?;
-            Ok(base.with_file_name(format!("{}{suffix}", file_name.display())))
+                .expect("Programmer error: path has no file name");
+            base.with_file_name(format!("{}{suffix}", file_name.display()))
         }
 
         match self {
@@ -287,6 +289,18 @@ impl FanComponent {
             FanComponent::Input => add_suffix(base, "_input"),
             FanComponent::Output => add_suffix(base, "_output"),
             FanComponent::Manual => add_suffix(base, "_manual"),
+        }
+    }
+}
+
+impl std::fmt::Display for FanComponent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Min => f.write_str("min speed"),
+            Self::Max => f.write_str("max speed"),
+            Self::Input => f.write_str("current/input speed"),
+            Self::Output => f.write_str("target/output speed"),
+            Self::Manual => f.write_str("manual control"),
         }
     }
 }
