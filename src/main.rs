@@ -142,12 +142,14 @@ fn main() -> ExitCode {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             use std::error::Error;
-            log::error!("{err}");
+            use std::fmt::Write;
+            let mut msg = err.to_string();
             let mut source = err.source();
             while let Some(cause) = source {
-                log::error!("  caused by: {cause}");
+                write!(msg, "\n  caused by: {cause}").unwrap();
                 source = cause.source();
             }
+            log::error!("{msg}");
             ExitCode::FAILURE
         }
     }
