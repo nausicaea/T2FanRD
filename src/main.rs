@@ -213,7 +213,7 @@ fn real_main() -> Result<()> {
         return Err(Error::NotRoot);
     }
 
-    let lock = acquire_lock_file(LOCK_FILE)?;
+    let _lock = acquire_lock_file(LOCK_FILE)?;
 
     let mut temp_buffer = String::new();
 
@@ -237,6 +237,5 @@ fn real_main() -> Result<()> {
         fan.set_manual(false)?;
     }
 
-    drop(lock);
     res
 }
