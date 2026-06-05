@@ -90,6 +90,7 @@ fn find_fans() -> Result<NonEmptyVec<Fan>> {
                 .and_then(|f| f.to_str())
                 .and_then(|f| f.strip_suffix("_input"))
                 .ok_or(Error::NoFan)?;
+            #[allow(clippy::unnecessary_to_owned)]
             fan_input.set_file_name(fan_name.to_string());
             fans.push(Fan::new(fan_input));
         }
