@@ -100,15 +100,16 @@ fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
 }
 
 fn read_temp_file(temp_file: &mut File, temp_buf: &mut String) -> Result<u8> {
+    temp_buf.clear();
     temp_file
         .read_to_string(temp_buf)
         .map_err(Error::TempRead)?;
-
     temp_file.rewind().map_err(Error::TempSeek)?;
-
-    let temp = temp_buf.trim_end().parse::<u32>().map_err(Error::TempParse);
-    temp_buf.clear();
-    temp.map(|t| (t / 1000) as u8)
+    temp_buf
+        .trim_end()
+        .parse::<u32>()
+        .map(|t| (t / 1000) as u8)
+        .map_err(Error::TempParse)
 }
 
 fn find_temp_file(temps: glob::Paths, temp_buf: &mut String) -> Option<File> {
