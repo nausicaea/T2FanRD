@@ -35,6 +35,51 @@ const CONFIG_FILE: &str = "./t2fand.conf";
 #[cfg(not(debug_assertions))]
 const CONFIG_FILE: &str = "/etc/t2fand.conf";
 
+fn main() -> ExitCode {
+    env_logger::builder().format_timestamp_secs().init();
+
+    match real_main() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(err) => {
+            use std::error::Error;
+            use std::fmt::Write;
+            let mut msg = err.to_string();
+            let mut source = err.source();
+            while let Some(cause) = source {
+                write!(msg, "\n  caused by: {cause}").unwrap();
+                source = cause.source();
+            }
+            log::error!("{msg}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn real_main() -> Result<()> {
+    if get_current_euid() != 0 {
+        return Err(Error::NotRoot);
+    }
+
+    let _lock = acquire_lock_file(LOCK_FILE)?;
+
+    let mut temp_buffer = String::new();
+
+    let fans = find_fans()?;
+    let mut fan_controllers = load_fan_configs(CONFIG_FILE, fans)?;
+    let cpu_temp_file = find_cpu_temp_file(&mut temp_buffer)?;
+    let gpu_temp_file = find_gpu_temp_file(&mut temp_buffer)?;
+
+    let res = start_temp_loop(
+        temp_buffer,
+        cpu_temp_file,
+        gpu_temp_file,
+        &mut fan_controllers,
+    );
+    log::info!("T2 Fan Daemon is shutting down...");
+
+    res
+}
+
 fn acquire_lock_file<P: AsRef<Path>>(lock_file: P) -> Result<File> {
     // CORRECTNESS: we don't write to the file, so truncation is explicitly left undefined
     #[allow(clippy::suspicious_open_options)]
@@ -140,26 +185,6 @@ fn find_gpu_temp_file(temp_buf: &mut String) -> Result<Option<File>> {
     Ok(find_temp_file(temps, temp_buf))
 }
 
-fn main() -> ExitCode {
-    env_logger::builder().format_timestamp_secs().init();
-
-    match real_main() {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(err) => {
-            use std::error::Error;
-            use std::fmt::Write;
-            let mut msg = err.to_string();
-            let mut source = err.source();
-            while let Some(cause) = source {
-                write!(msg, "\n  caused by: {cause}").unwrap();
-                source = cause.source();
-            }
-            log::error!("{msg}");
-            ExitCode::FAILURE
-        }
-    }
-}
-
 fn start_temp_loop(
     mut temp_buffer: String,
     mut cpu_temp_file: File,
@@ -221,29 +246,4 @@ fn start_temp_loop(
     }
 
     Ok(())
-}
-
-fn real_main() -> Result<()> {
-    if get_current_euid() != 0 {
-        return Err(Error::NotRoot);
-    }
-
-    let _lock = acquire_lock_file(LOCK_FILE)?;
-
-    let mut temp_buffer = String::new();
-
-    let fans = find_fans()?;
-    let mut fan_controllers = load_fan_configs(CONFIG_FILE, fans)?;
-    let cpu_temp_file = find_cpu_temp_file(&mut temp_buffer)?;
-    let gpu_temp_file = find_gpu_temp_file(&mut temp_buffer)?;
-
-    let res = start_temp_loop(
-        temp_buffer,
-        cpu_temp_file,
-        gpu_temp_file,
-        &mut fan_controllers,
-    );
-    log::info!("T2 Fan Daemon is shutting down...");
-
-    res
 }
