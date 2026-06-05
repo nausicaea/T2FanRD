@@ -136,7 +136,9 @@ fn find_gpu_temp_file(temp_buf: &mut String) -> Result<Option<File>> {
 }
 
 fn main() -> ExitCode {
-    env_logger::init();
+    env_logger::builder()
+        .format_timestamp_secs()
+        .init();
 
     match real_main() {
         Ok(()) => ExitCode::SUCCESS,
