@@ -184,7 +184,7 @@ fn start_temp_loop(
             }
         }
 
-        let sum_temp: u32 = temps.iter().map(|t| *t as u32).sum();
+        let sum_temp: u32 = temps.iter().map(|t| u32::from(*t)).sum();
         let mean_temp: u8 =
             u8::try_from(sum_temp / (temps.len() as u32)).map_err(Error::TempMean)?;
         if mean_temp == last_temp {

@@ -99,9 +99,9 @@ impl FanController {
             return self.max_speed;
         }
 
-        let temp = temp as u32;
-        let low_temp = self.config.low_temp as u32;
-        let high_temp = self.config.high_temp as u32;
+        let temp = u32::from(temp);
+        let low_temp = u32::from(self.config.low_temp);
+        let high_temp = u32::from(self.config.high_temp);
         match self.config.speed_curve {
             SpeedCurve::Linear => {
                 ((temp - low_temp) as f32 / (high_temp - low_temp) as f32
