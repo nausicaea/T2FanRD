@@ -23,6 +23,7 @@ macro_rules! write_trunc {
 
 #[derive(Debug)]
 pub struct FanController {
+    path: PathBuf,
     manual_file: std::fs::File,
     output_file: std::fs::File,
     input_file: std::fs::File,
@@ -71,10 +72,11 @@ impl FanController {
 
         let input_file = std::fs::OpenOptions::new()
             .read(true)
-            .open(with_suffix(fan, "_input")?)
+            .open(with_suffix(fan.clone(), "_input")?)
             .map_err(Error::FanOpen)?;
 
         let mut this = Self {
+            path: fan,
             manual_file,
             output_file,
             input_file,
@@ -85,7 +87,13 @@ impl FanController {
             min_speed,
             max_speed,
         };
-        log::info!("Found fan: {this:#?}");
+        log::info!(
+            "Initialized fan: path={}, min={} RPM, max={} RPM, config={:#?}",
+            this.path.display(),
+            &this.min_speed,
+            &this.max_speed,
+            &this.config,
+        );
 
         // Acquire manual control (see `Drop` impl)
         this.set_manual(true)?;
