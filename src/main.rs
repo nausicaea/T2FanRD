@@ -64,17 +64,21 @@ fn real_main() -> Result<()> {
 
     #[cfg(feature = "observability")]
     let _guard = {
-        let logger = sentry_log::SentryLogger::with_dest(env_logger::builder().format_timestamp_secs().build());
-        log::set_boxed_logger(Box::new(logger)).unwrap();
 
-        sentry::init((
+        let guard = sentry::init((
                 "https://23e76077454330611b3b02135082fc0c@o4505478415384576.ingest.us.sentry.io/4511514067664896",
                 sentry::ClientOptions {
                     release: sentry::release_name!(),
-                    send_default_pii: false,
+                    enable_logs: true,
                     ..Default::default()
                 },
-        ))
+        ));
+
+        let logger = sentry_log::SentryLogger::with_dest(env_logger::builder().format_timestamp_secs().build());
+        log::set_boxed_logger(Box::new(logger)).unwrap();
+        log::set_max_level(log::LevelFilter::Trace);
+
+        guard
     };
 
     let mut temp_buffer = String::new();
