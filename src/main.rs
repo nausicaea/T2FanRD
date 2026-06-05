@@ -31,6 +31,7 @@ compile_error!("This tool is only developed for Linux systems.");
 const LOCK_FILE: &str = "/run/t2fanrd.lock";
 
 fn acquire_lock_file<P: AsRef<Path>>(lock_file: P) -> Result<File> {
+    // CORRECTNESS: we don't write to the file, so truncation is explicitly left undefined
     #[allow(clippy::suspicious_open_options)]
     let file = std::fs::OpenOptions::new()
         .write(true)
