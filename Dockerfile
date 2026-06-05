@@ -1,5 +1,5 @@
 ARG BUILDPLATFORM=linux/amd64
-FROM --platform=${BUILDPLATFORM} docker.io/library/rust:1.96.0-alpine3.23 AS build
+FROM --platform=${BUILDPLATFORM} docker.io/library/rust:1.96.0-alpine3.23@sha256:66f48b19d6e88519e2e58bebe0d945779a6a4ca41c2db17db78c9569655b50ac AS build
 ARG FEATURES="-F observability"
 ARG RUSTFLAGS="-C target-feature=+crt-static"
 ARG TARGET=x86_64-unknown-linux-musl
