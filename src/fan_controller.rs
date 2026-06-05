@@ -61,19 +61,22 @@ impl FanController {
             .open(with_suffix(fan, "_output")?)
             .map_err(Error::FanOpen)?;
 
-        let this = Self {
+        let mut this = Self {
             manual_file,
             output_file,
             config,
             min_speed,
             max_speed,
         };
-
         log::info!("Found fan: {this:#?}");
+
+        // Acquire manual control (see `Drop` impl)
+        this.set_manual(true)?;
+
         Ok(this)
     }
 
-    pub fn set_manual(&mut self, enabled: bool) -> Result<()> {
+    fn set_manual(&mut self, enabled: bool) -> Result<()> {
         write_trunc!(&mut self.manual_file, "{}", usize::from(enabled)).map_err(Error::FanWrite)?;
         Ok(())
     }
@@ -136,6 +139,14 @@ impl FanController {
                     * (self.max_speed - self.min_speed) as f32) as u32
                     + self.min_speed
             }
+        }
+    }
+}
+
+impl Drop for FanController {
+    fn drop(&mut self) {
+        if let Err(e) = self.set_manual(false) {
+            log::error!("Failed to reset fan to automatic on drop: {e}");
         }
     }
 }

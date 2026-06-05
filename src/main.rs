@@ -218,12 +218,6 @@ fn real_main() -> Result<()> {
     let cpu_temp_file = find_cpu_temp_file(&mut temp_buffer)?;
     let gpu_temp_file = find_gpu_temp_file(&mut temp_buffer)?;
 
-    for fan in fan_controllers.iter_mut() {
-        if let Err(e) = fan.set_manual(true) {
-            log::error!("Failed to set fan to manual: {e}");
-        }
-    }
-
     let res = start_temp_loop(
         temp_buffer,
         cpu_temp_file,
@@ -231,11 +225,6 @@ fn real_main() -> Result<()> {
         &mut fan_controllers,
     );
     log::info!("T2 Fan Daemon is shutting down...");
-    for mut fan in fan_controllers {
-        if let Err(e) = fan.set_manual(false) {
-            log::error!("Failed to reset fan back to automatic: {e}");
-        }
-    }
 
     res
 }
