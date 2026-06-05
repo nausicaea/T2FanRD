@@ -22,6 +22,7 @@ pub struct FanController {
     manual_file: std::fs::File,
     output_file: std::fs::File,
     config: FanConfig,
+    current_speed: Option<u32>,
 
     min_speed: u32,
     max_speed: u32,
@@ -65,6 +66,7 @@ impl FanController {
             manual_file,
             output_file,
             config,
+            current_speed: None,
             min_speed,
             max_speed,
         };
@@ -81,12 +83,16 @@ impl FanController {
         Ok(())
     }
 
-    pub fn set_speed(&mut self, mut speed: u32) -> Result<()> {
+    pub fn set_speed(&mut self, mut speed: u32) -> Result<bool> {
         speed = speed.clamp(self.min_speed, self.max_speed);
 
-        log::info!("Setting fan speed to {speed}");
+        if self.current_speed == Some(speed) {
+            return Ok(false);
+        }
+
         write_trunc!(&mut self.output_file, "{speed}").map_err(Error::FanWrite)?;
-        Ok(())
+        self.current_speed = Some(speed);
+        Ok(true)
     }
 
     pub fn calc_speed(&self, temp: u8) -> u32 {

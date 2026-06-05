@@ -201,7 +201,10 @@ fn start_temp_loop(
         } else {
             last_temp = mean_temp;
             for fan in fans.iter_mut() {
-                fan.set_speed(fan.calc_speed(mean_temp))?;
+                let speed = fan.calc_speed(mean_temp);
+                if fan.set_speed(speed)? {
+                    log::info!("temp={mean_temp}°C, mean={mean_temp}°C, speed={speed} RPM");
+                }
             }
 
             std::thread::sleep(std::time::Duration::from_millis(100));
