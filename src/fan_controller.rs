@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{Read, Seek, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::{Duration, Instant},
 };
 
@@ -39,50 +39,43 @@ pub struct FanController {
 
 impl FanController {
     pub fn new(fan: PathBuf, config: FanConfig, temp_buf: &mut String) -> Result<Self> {
-        fn with_suffix(mut path: PathBuf, suffix: &'static str) -> Result<PathBuf> {
-            let file_name = path
-                .file_name()
-                .and_then(|file_name| file_name.to_str())
-                .ok_or_else(|| Error::Fan(path.clone(), FanError::Path))?;
-            path.set_file_name(format!("{file_name}{suffix}"));
-            Ok(path)
-        }
-
-        fn open_with_suffix(path: PathBuf, suffix: &'static str, read_only: bool) -> Result<File> {
+        fn open_component(path: PathBuf, component: FanComponent, read_only: bool) -> Result<File> {
             let mut opt = std::fs::OpenOptions::new();
             if read_only {
                 opt.read(true);
             } else {
                 opt.write(true);
             }
-            opt.open(with_suffix(path.clone(), suffix)?)
-                .map_err(|e| Error::Fan(path, FanError::Open(suffix, e)))
+            opt.open(component.to_path(&path)?)
+                .map_err(|e| Error::Fan(path, FanError::Open(component, e)))
         }
 
-        let min_speed = open_with_suffix(fan.clone(), "_min", true).and_then(|mut fan_min| {
-            temp_buf.clear();
-            fan_min
-                .read_to_string(temp_buf)
-                .map_err(|e| Error::Fan(fan.clone(), FanError::Read("_min", e)))?;
-            temp_buf
-                .trim()
-                .parse()
-                .map_err(|e| Error::Fan(fan.clone(), FanError::Parse("_min", e)))
-        })?;
-        let max_speed = open_with_suffix(fan.clone(), "_max", true).and_then(|mut fan_max| {
-            temp_buf.clear();
-            fan_max
-                .read_to_string(temp_buf)
-                .map_err(|e| Error::Fan(fan.clone(), FanError::Read("_max", e)))?;
-            temp_buf
-                .trim()
-                .parse()
-                .map_err(|e| Error::Fan(fan.clone(), FanError::Parse("_max", e)))
-        })?;
+        let min_speed =
+            open_component(fan.clone(), FanComponent::Min, true).and_then(|mut fan_min| {
+                temp_buf.clear();
+                fan_min
+                    .read_to_string(temp_buf)
+                    .map_err(|e| Error::Fan(fan.clone(), FanError::Read(FanComponent::Min, e)))?;
+                temp_buf
+                    .trim()
+                    .parse()
+                    .map_err(|e| Error::Fan(fan.clone(), FanError::Parse(FanComponent::Min, e)))
+            })?;
+        let max_speed =
+            open_component(fan.clone(), FanComponent::Max, true).and_then(|mut fan_max| {
+                temp_buf.clear();
+                fan_max
+                    .read_to_string(temp_buf)
+                    .map_err(|e| Error::Fan(fan.clone(), FanError::Read(FanComponent::Max, e)))?;
+                temp_buf
+                    .trim()
+                    .parse()
+                    .map_err(|e| Error::Fan(fan.clone(), FanError::Parse(FanComponent::Max, e)))
+            })?;
 
-        let manual_file = open_with_suffix(fan.clone(), "_manual", false)?;
-        let output_file = open_with_suffix(fan.clone(), "_output", false)?;
-        let input_file = open_with_suffix(fan.clone(), "_input", true)?;
+        let manual_file = open_component(fan.clone(), FanComponent::Manual, false)?;
+        let output_file = open_component(fan.clone(), FanComponent::Output, false)?;
+        let input_file = open_component(fan.clone(), FanComponent::Input, true)?;
 
         let mut this = Self {
             path: fan.clone(),
@@ -111,7 +104,8 @@ impl FanController {
     }
 
     fn set_manual(&mut self, enabled: bool) -> Result<(), FanError> {
-        write_trunc!(&mut self.manual_file, "{}", usize::from(enabled)).map_err(FanError::Write)?;
+        write_trunc!(&mut self.manual_file, "{}", usize::from(enabled))
+            .map_err(|e| FanError::Write(FanComponent::Manual, e))?;
         Ok(())
     }
 
@@ -123,7 +117,7 @@ impl FanController {
         }
 
         write_trunc!(&mut self.output_file, "{speed}")
-            .map_err(|e| Error::Fan(self.path.clone(), FanError::Write(e)))?;
+            .map_err(|e| Error::Fan(self.path.clone(), FanError::Write(FanComponent::Output, e)))?;
 
         // Only start a new settling window when direction changes or
         // we're starting from a settled state, not on every incremental step.
@@ -265,6 +259,34 @@ impl Drop for FanController {
     fn drop(&mut self) {
         if let Err(e) = self.set_manual(false) {
             log::error!("Failed to reset fan to automatic on drop: {e}");
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum FanComponent {
+    Min,
+    Max,
+    Input,
+    Output,
+    Manual,
+}
+
+impl FanComponent {
+    pub fn to_path(self, base: &Path) -> Result<PathBuf> {
+        fn add_suffix(base: &Path, suffix: &'static str) -> Result<PathBuf> {
+            let file_name = base
+                .file_name()
+                .ok_or_else(|| Error::Fan(base.to_path_buf(), FanError::Path))?;
+            Ok(base.with_file_name(format!("{}{suffix}", file_name.display())))
+        }
+
+        match self {
+            FanComponent::Min => add_suffix(base, "_min"),
+            FanComponent::Max => add_suffix(base, "_max"),
+            FanComponent::Input => add_suffix(base, "_input"),
+            FanComponent::Output => add_suffix(base, "_output"),
+            FanComponent::Manual => add_suffix(base, "_manual"),
         }
     }
 }

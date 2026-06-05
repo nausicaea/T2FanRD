@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::fan_controller::FanComponent;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("T2 Fan Daemon must be run as root")]
@@ -31,7 +33,7 @@ pub enum Error {
     #[error("{1}: {path}", path=.0.display())]
     Config(PathBuf, #[source] ConfigError),
 
-    #[error("{1}: {path}", path=.0.display())]
+    #[error("{1}: {path}", path=.1.component().and_then(|c| c.to_path(&.0).ok()).map(|p| format!("{}", p.display())).unwrap_or_default())]
     Fan(PathBuf, #[source] FanError),
 
     #[error("Cannot setup shutdown signals")]
@@ -75,18 +77,30 @@ pub enum ConfigError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum FanError {
+    #[error("Cannot complete search for fans")]
+    Search(#[source] std::io::Error),
     #[error("The fan directory structure doesn't have the expected layout")]
     Path,
     #[error("Cannot open fan controller handle")]
-    Open(&'static str, #[source] std::io::Error),
+    Open(FanComponent, #[source] std::io::Error),
     #[error("Cannot read fan controller handle")]
-    Read(&'static str, #[source] std::io::Error),
+    Read(FanComponent, #[source] std::io::Error),
     #[error("Cannot write to fan controller")]
-    Write(#[source] std::io::Error),
-    #[error("Cannot complete search for fans")]
-    Search(#[source] std::io::Error),
+    Write(FanComponent, #[source] std::io::Error),
     #[error("Cannot parse fan controller output")]
-    Parse(&'static str, #[source] std::num::ParseIntError),
+    Parse(FanComponent, #[source] std::num::ParseIntError),
+}
+
+impl FanError {
+    fn component(&self) -> Option<FanComponent> {
+        match self {
+            FanError::Open(c, _)
+            | FanError::Read(c, _)
+            | FanError::Write(c, _)
+            | FanError::Parse(c, _) => Some(*c),
+            _ => None,
+        }
+    }
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
