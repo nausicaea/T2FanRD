@@ -16,7 +16,7 @@ LABEL org.opencontainers.image.title="t2fanrd"
 LABEL org.opencontainers.image.description="Simple Fan Daemon for T2 Macs"
 LABEL org.opencontainers.image.authors="GnomedDev,nausicaea"
 LABEL org.opencontainers.image.source="https://github.com/nausicaea/t2fanrd"
-LABEL org.opencontainers.image.version="0.4.0"
+LABEL org.opencontainers.image.version="0.4.1"
 LABEL org.opencontainers.image.licenses="GPL-3.0-only"
 COPY manifest.yaml /
 COPY rootfs/ /rootfs/

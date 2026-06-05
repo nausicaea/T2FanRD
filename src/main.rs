@@ -34,6 +34,25 @@ compile_error!("This tool is only developed for Linux systems.");
 const LOCK_FILE: &str = "/run/t2fanrd.lock";
 
 fn main() -> ExitCode {
+    #[cfg(feature = "observability")]
+    let _guard = {
+
+        let guard = sentry::init((
+                "https://23e76077454330611b3b02135082fc0c@o4505478415384576.ingest.us.sentry.io/4511514067664896",
+                sentry::ClientOptions {
+                    release: sentry::release_name!(),
+                    enable_logs: true,
+                    ..Default::default()
+                },
+        ));
+
+        let logger = sentry_log::SentryLogger::with_dest(env_logger::builder().format_timestamp_secs().build());
+        log::set_boxed_logger(Box::new(logger)).unwrap();
+        log::set_max_level(log::LevelFilter::Trace);
+
+        guard
+    };
+
     match real_main() {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
@@ -61,25 +80,6 @@ fn real_main() -> Result<()> {
 
     #[cfg(not(feature = "skip_flock"))]
     let _lock = acquire_lock_file(LOCK_FILE)?;
-
-    #[cfg(feature = "observability")]
-    let _guard = {
-
-        let guard = sentry::init((
-                "https://23e76077454330611b3b02135082fc0c@o4505478415384576.ingest.us.sentry.io/4511514067664896",
-                sentry::ClientOptions {
-                    release: sentry::release_name!(),
-                    enable_logs: true,
-                    ..Default::default()
-                },
-        ));
-
-        let logger = sentry_log::SentryLogger::with_dest(env_logger::builder().format_timestamp_secs().build());
-        log::set_boxed_logger(Box::new(logger)).unwrap();
-        log::set_max_level(log::LevelFilter::Trace);
-
-        guard
-    };
 
     let mut temp_buffer = String::new();
 
