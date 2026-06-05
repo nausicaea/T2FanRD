@@ -1,7 +1,11 @@
 name: t2fanrd
 container:
-  entrypoint: ./t2fanrd
+  entrypoint: ./t2fanrd -c ./config.ini
   security:
     writeableSysfs: true
+depends:
+  network:
+    - addresses
+    - connectivity
 restart: always
 logToConsole: true
