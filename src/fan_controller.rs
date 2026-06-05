@@ -1,7 +1,7 @@
 use std::{
     io::{Read, Seek, Write},
     path::PathBuf,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use crate::{
@@ -28,8 +28,8 @@ pub struct FanController {
     input_file: std::fs::File,
     config: FanConfig,
     current_speed: Option<u32>,
-    previous_speed: Option<u32>,
-    last_speed_change: Option<Instant>,
+    ramp_start_time: Option<Instant>,
+    ramp_start_speed: Option<u32>,
 
     min_speed: u32,
     max_speed: u32,
@@ -80,8 +80,8 @@ impl FanController {
             input_file,
             config,
             current_speed: None,
-            previous_speed: None,
-            last_speed_change: None,
+            ramp_start_time: None,
+            ramp_start_speed: None,
             min_speed,
             max_speed,
         };
@@ -106,9 +106,25 @@ impl FanController {
         }
 
         write_trunc!(&mut self.output_file, "{speed}").map_err(Error::FanWrite)?;
-        self.previous_speed = self.current_speed;
+
+        // Only start a new settling window when direction changes or
+        // we're starting from a settled state, not on every incremental step.
+        let starting_new_ramp = match (self.current_speed, self.ramp_start_speed) {
+            (Some(current), Some(ramp_start)) => {
+                let was_going_up = ramp_start < current;
+                let now_going_up = current < speed;
+                was_going_up != now_going_up // direction changed
+            }
+            _ => true,
+        };
+
+        if starting_new_ramp {
+            self.ramp_start_speed = self.current_speed;
+            self.ramp_start_time = Some(Instant::now());
+        }
+
         self.current_speed = Some(speed);
-        self.last_speed_change = Some(Instant::now());
+
         Ok(true)
     }
 
@@ -144,14 +160,15 @@ impl FanController {
         }
 
         // Check if we're still within the settling period.
-        if let (Some(last_change), Some(prev_speed)) = (self.last_speed_change, self.previous_speed)
+        if let (Some(ramp_start_time), Some(ramp_start_speed)) =
+            (self.ramp_start_time, self.ramp_start_speed)
         {
             #[allow(clippy::cast_precision_loss)]
-            let delta = current_speed.abs_diff(prev_speed) as f32;
+            let total_delta = current_speed.abs_diff(ramp_start_speed) as f32;
             #[allow(clippy::cast_precision_loss)]
-            let settling_secs = self.config.settling_time_factor * delta / self.max_speed as f32;
-            let settling = std::time::Duration::from_secs_f32(settling_secs);
-            if last_change.elapsed() < settling {
+            let settling_secs =
+                self.config.settling_time_factor * total_delta / self.max_speed as f32;
+            if ramp_start_time.elapsed() < Duration::from_secs_f32(settling_secs) {
                 return Ok(());
             }
         }
