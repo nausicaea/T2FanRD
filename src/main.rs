@@ -150,7 +150,7 @@ fn start_temp_loop(
     mut temp_buffer: String,
     mut cpu_temp_file: File,
     mut gpu_temp_file: Option<File>,
-    fans: &NonEmptyVec<FanController>,
+    fans: &mut NonEmptyVec<FanController>,
 ) -> Result<()> {
     let term = Arc::new(AtomicBool::new(false));
     signal_flag::register(SIGINT, term.clone()).map_err(Error::Signal)?;
@@ -189,7 +189,7 @@ fn start_temp_loop(
             was_long_sleep = true;
         } else {
             last_temp = mean_temp;
-            for fan in fans {
+            for fan in fans.iter_mut() {
                 fan.set_speed(fan.calc_speed(mean_temp as u8))?;
             }
 
@@ -211,17 +211,22 @@ fn real_main() -> Result<()> {
     let mut temp_buffer = String::new();
 
     let fans = find_fans()?;
-    let fan_controllers = load_fan_configs(fans)?;
+    let mut fan_controllers = load_fan_configs(fans)?;
     let cpu_temp_file = find_cpu_temp_file(&mut temp_buffer)?;
     let gpu_temp_file = find_gpu_temp_file(&mut temp_buffer)?;
 
-    for fan in &fan_controllers {
+    for fan in fan_controllers.iter_mut() {
         fan.set_manual(true)?;
     }
 
-    let res = start_temp_loop(temp_buffer, cpu_temp_file, gpu_temp_file, &fan_controllers);
+    let res = start_temp_loop(
+        temp_buffer,
+        cpu_temp_file,
+        gpu_temp_file,
+        &mut fan_controllers,
+    );
     log::info!("T2 Fan Daemon is shutting down...");
-    for fan in fan_controllers {
+    for mut fan in fan_controllers {
         fan.set_manual(false)?;
     }
 

@@ -17,6 +17,18 @@ impl Fan {
     }
 }
 
+macro_rules! write_trunc {
+    ($dst:expr, $($arg:tt)*) => {
+        Ok(&mut $dst)
+            .and_then(|w| {
+                use std::io::Seek;
+                w.seek(std::io::SeekFrom::Start(0))?;
+                w.set_len(0)?;
+                write!(w, $($arg)*)
+            })
+    }
+}
+
 #[derive(Debug)]
 pub struct FanController {
     manual_file: std::fs::File,
@@ -70,13 +82,13 @@ impl FanController {
         Ok(this)
     }
 
-    pub fn set_manual(&self, enabled: bool) -> Result<()> {
-        (&self.manual_file)
-            .write_all(if enabled { b"1" } else { b"0" })
-            .map_err(Error::FanWrite)
+    pub fn set_manual(&mut self, enabled: bool) -> Result<()> {
+        write_trunc!(&mut self.manual_file, "{}", if enabled { 1 } else { 0 })
+            .map_err(Error::FanWrite)?;
+        Ok(())
     }
 
-    pub fn set_speed(&self, mut speed: u32) -> Result<()> {
+    pub fn set_speed(&mut self, mut speed: u32) -> Result<()> {
         if speed < self.min_speed {
             speed = self.min_speed;
         } else if speed > self.max_speed {
@@ -91,7 +103,7 @@ impl FanController {
             }
         }
 
-        write!(&self.output_file, "{speed}").map_err(Error::FanWrite)?;
+        write_trunc!(&mut self.output_file, "{speed}").map_err(Error::FanWrite)?;
         Ok(())
     }
 
