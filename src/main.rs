@@ -28,7 +28,7 @@ mod config;
 mod error;
 mod fan_controller;
 
-#[cfg(not(any(target_os = "linux", debug_assertions)))]
+#[cfg(not(any(target_os = "linux", feature = "skip_linux_check")))]
 compile_error!("This tool is only developed for Linux systems.");
 
 const LOCK_FILE: &str = "/run/t2fanrd.lock";
