@@ -166,11 +166,7 @@ fn start_temp_loop(
         let cpu_temp = read_temp_file(&mut cpu_temp_file, &mut temp_buffer)?;
         let temp = if let Some(gpu_temp_file) = &mut gpu_temp_file {
             let gpu_temp = read_temp_file(gpu_temp_file, &mut temp_buffer)?;
-            if gpu_temp > cpu_temp {
-                gpu_temp
-            } else {
-                cpu_temp
-            }
+            cpu_temp.max(gpu_temp)
         } else {
             cpu_temp
         };
