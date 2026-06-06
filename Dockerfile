@@ -12,12 +12,13 @@ COPY src/ ./src/
 RUN cargo build --frozen --release --target ${TARGET} ${FEATURES}
 
 FROM scratch
-LABEL org.opencontainers.image.title="t2fanrd"
-LABEL org.opencontainers.image.description="Simple Fan Daemon for T2 Macs"
-LABEL org.opencontainers.image.authors="GnomedDev,nausicaea"
-LABEL org.opencontainers.image.source="https://github.com/nausicaea/t2fanrd"
-LABEL org.opencontainers.image.version="0.4.1"
-LABEL org.opencontainers.image.licenses="GPL-3.0-only"
+LABEL \
+    org.opencontainers.image.title="t2fanrd" \
+    org.opencontainers.image.description="Simple Fan Daemon for T2 Macs" \
+    org.opencontainers.image.authors="GnomedDev,nausicaea" \
+    org.opencontainers.image.source="https://github.com/nausicaea/t2fanrd" \
+    org.opencontainers.image.version="0.4.3" \
+    org.opencontainers.image.licenses="GPL-3.0-only"
 COPY manifest.yaml /
 COPY rootfs/ /rootfs/
 COPY --from=build --chown=root:root --chmod=0755 /workdir/target/x86_64-unknown-linux-musl/release/t2fanrd /rootfs/usr/local/lib/containers/t2fanrd/t2fanrd
