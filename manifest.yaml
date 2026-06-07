@@ -1,7 +1,7 @@
 version: v1alpha1
 metadata:
   name: t2fanrd
-  version: "v0.4.4"
+  version: "v0.4.5-dev"
   author: GnomedDev
   description: Simple Fan Daemon for T2 Macs
   compatibility:
