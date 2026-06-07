@@ -34,6 +34,9 @@ compile_error!("This tool is only developed for Linux systems.");
 const LOCK_FILE: &str = "/run/t2fanrd.lock";
 
 fn main() -> ExitCode {
+    #[cfg(not(feature = "observability"))]
+    env_logger::builder().format_timestamp_secs().init();
+
     #[cfg(feature = "observability")]
     let _guard = {
         let guard = sentry::init((
