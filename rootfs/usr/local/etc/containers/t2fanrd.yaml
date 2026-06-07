@@ -13,7 +13,5 @@ container:
       options:
         - bind
         - rw
-depends:
-  - configuration: true
 restart: always
 logToConsole: true
