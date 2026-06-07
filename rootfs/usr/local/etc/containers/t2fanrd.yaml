@@ -6,7 +6,15 @@ container:
     - "./config.ini"
   security:
     writeableSysfs: true
+  mounts:
+    - source: /sys
+      destination: /sys
+      type: bind
+      options:
+        - bind
+        - rw
 depends:
+  - path: /sys/class/hwmon
   - network:
       - addresses
       - connectivity
