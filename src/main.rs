@@ -36,7 +36,6 @@ const LOCK_FILE: &str = "/run/t2fanrd.lock";
 fn main() -> ExitCode {
     #[cfg(feature = "observability")]
     let _guard = {
-
         let guard = sentry::init((
                 "https://23e76077454330611b3b02135082fc0c@o4505478415384576.ingest.us.sentry.io/4511514067664896",
                 sentry::ClientOptions {
@@ -65,6 +64,8 @@ fn main() -> ExitCode {
                 source = cause.source();
             }
             log::error!("{msg}");
+            #[cfg(feature = "observability")]
+            sentry::logger_error!("{msg}");
             ExitCode::FAILURE
         }
     }
@@ -130,7 +131,16 @@ fn get_current_euid() -> libc::uid_t {
     unsafe { libc::geteuid() }
 }
 
+
 fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
+    let hwmon_devices: Vec<_> = glob::glob("/sys/class/hwmon/hwmon*/device/*")
+        .into_iter()
+        .flatten()
+        .flat_map(|gr| gr)
+        .map(|path| format!("{}", path.display()))
+        .collect();
+    log::debug!("Found the following devices:\n{}", hwmon_devices.join("\n"));
+
     // /sys/class/hwmon/hwmon*/device/name == "applesmc"
     // /sys/class/hwmon/hwmon*/device/fan*
     let mut fans = Vec::default();
