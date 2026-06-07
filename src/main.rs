@@ -35,7 +35,7 @@ const LOCK_FILE: &str = "/run/t2fanrd.lock";
 
 fn main() -> ExitCode {
     #[cfg(not(feature = "observability"))]
-    env_logger::builder().format_timestamp_secs().init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
 
     #[cfg(feature = "observability")]
     let _guard = {
