@@ -143,7 +143,7 @@ fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
     let hwmon_devices: Vec<_> = glob::glob("/sys/class/hwmon/hwmon*/device/*")
         .into_iter()
         .flatten()
-        .flat_map(|gr| gr)
+        .flatten()
         .map(|path| format!("{}", path.display()))
         .collect();
     log::debug!("Found the following hwmon devices:\n{}", hwmon_devices.join("\n"));
