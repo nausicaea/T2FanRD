@@ -40,15 +40,17 @@ fn main() -> ExitCode {
     #[cfg(feature = "observability")]
     let _guard = {
         let guard = sentry::init((
-                "https://23e76077454330611b3b02135082fc0c@o4505478415384576.ingest.us.sentry.io/4511514067664896",
-                sentry::ClientOptions {
-                    release: sentry::release_name!(),
-                    enable_logs: true,
-                    ..Default::default()
-                },
+            "https://23e76077454330611b3b02135082fc0c@o4505478415384576.ingest.us.sentry.io/4511514067664896",
+            sentry::ClientOptions {
+                release: sentry::release_name!(),
+                enable_logs: true,
+                ..Default::default()
+            },
         ));
 
-        let logger = sentry_log::SentryLogger::with_dest(env_logger::builder().format_timestamp_secs().build());
+        let logger = sentry_log::SentryLogger::with_dest(
+            env_logger::builder().format_timestamp_secs().build(),
+        );
         log::set_boxed_logger(Box::new(logger)).unwrap();
         log::set_max_level(log::LevelFilter::Trace);
 
@@ -105,7 +107,10 @@ fn real_main() -> Result<()> {
 }
 
 fn acquire_lock_file<P: AsRef<Path>>(lock_file: P) -> Result<File> {
-    log::debug!("Attempt to open the lock file at {}", lock_file.as_ref().display());
+    log::debug!(
+        "Attempt to open the lock file at {}",
+        lock_file.as_ref().display()
+    );
     // CORRECTNESS: we don't write to the file, so truncation is explicitly left undefined
     #[allow(clippy::suspicious_open_options)]
     let file = std::fs::OpenOptions::new()
@@ -146,7 +151,10 @@ fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
         .flatten()
         .map(|path| format!("{}", path.display()))
         .collect();
-    log::debug!("Found the following hwmon devices:\n{}", hwmon_devices.join("\n"));
+    log::debug!(
+        "Found the following hwmon devices:\n{}",
+        hwmon_devices.join("\n")
+    );
 
     log::debug!("Search for hwmon devices with the name 'applesmc'");
     // /sys/class/hwmon/hwmon*/device/name == "applesmc"
@@ -162,7 +170,10 @@ fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
             continue;
         }
 
-        log::debug!("Search for files like 'fan*_input' in the 'applesmc' device at {}", path.display());
+        log::debug!(
+            "Search for files like 'fan*_input' in the 'applesmc' device at {}",
+            path.display()
+        );
         let device_path = path.parent().ok_or(Error::NoFan)?;
         for fan_input in glob::glob(&format!("{}/fan*_input", device_path.display()))? {
             let mut fan_input = fan_input?;
