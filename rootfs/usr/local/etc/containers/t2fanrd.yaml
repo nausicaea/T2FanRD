@@ -13,10 +13,5 @@ container:
       options:
         - bind
         - rw
-depends:
-  - path: /sys/class/hwmon
-  - network:
-      - addresses
-      - connectivity
 restart: always
 logToConsole: true

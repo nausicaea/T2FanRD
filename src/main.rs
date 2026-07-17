@@ -28,24 +28,29 @@ mod config;
 mod error;
 mod fan_controller;
 
-#[cfg(not(any(target_os = "linux", feature = "skip_linux_check")))]
-compile_error!("This tool is only developed for Linux systems.");
+// #[cfg(not(any(target_os = "linux", feature = "skip_linux_check")))]
+// compile_error!("This tool is only developed for Linux systems.");
 
 const LOCK_FILE: &str = "/run/t2fanrd.lock";
 
 fn main() -> ExitCode {
+    #[cfg(not(feature = "observability"))]
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("debug")).init();
+
     #[cfg(feature = "observability")]
     let _guard = {
         let guard = sentry::init((
-                "https://23e76077454330611b3b02135082fc0c@o4505478415384576.ingest.us.sentry.io/4511514067664896",
-                sentry::ClientOptions {
-                    release: sentry::release_name!(),
-                    enable_logs: true,
-                    ..Default::default()
-                },
+            "https://23e76077454330611b3b02135082fc0c@o4505478415384576.ingest.us.sentry.io/4511514067664896",
+            sentry::ClientOptions {
+                release: sentry::release_name!(),
+                enable_logs: true,
+                ..Default::default()
+            },
         ));
 
-        let logger = sentry_log::SentryLogger::with_dest(env_logger::builder().format_timestamp_secs().build());
+        let logger = sentry_log::SentryLogger::with_dest(
+            env_logger::builder().format_timestamp_secs().build(),
+        );
         log::set_boxed_logger(Box::new(logger)).unwrap();
         log::set_max_level(log::LevelFilter::Trace);
 
@@ -72,6 +77,7 @@ fn main() -> ExitCode {
 }
 
 fn real_main() -> Result<()> {
+    log::debug!("Parse command line arguments");
     let args = Args::parse();
 
     #[cfg(not(feature = "skip_root_check"))]
@@ -101,6 +107,10 @@ fn real_main() -> Result<()> {
 }
 
 fn acquire_lock_file<P: AsRef<Path>>(lock_file: P) -> Result<File> {
+    log::debug!(
+        "Attempt to open the lock file at {}",
+        lock_file.as_ref().display()
+    );
     // CORRECTNESS: we don't write to the file, so truncation is explicitly left undefined
     #[allow(clippy::suspicious_open_options)]
     let file = std::fs::OpenOptions::new()
@@ -109,6 +119,7 @@ fn acquire_lock_file<P: AsRef<Path>>(lock_file: P) -> Result<File> {
         .open(lock_file)
         .map_err(Error::LockWrite)?;
 
+    log::debug!("Attempt to acquire process lock via flock(2)");
     // SAFETY: valid fd, correct flock constants
     let ret = unsafe {
         use std::os::unix::io::AsRawFd;
@@ -123,24 +134,29 @@ fn acquire_lock_file<P: AsRef<Path>>(lock_file: P) -> Result<File> {
         return Err(Error::LockWrite(err));
     }
 
-    Ok(file) // keep File alive — lock released when dropped
+    Ok(file)
 }
 
 fn get_current_euid() -> libc::uid_t {
     // SAFETY: FFI call with no preconditions
-    unsafe { libc::geteuid() }
+    let euid = unsafe { libc::geteuid() };
+    log::debug!("Effective user ID is: {euid}");
+    euid
 }
-
 
 fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
     let hwmon_devices: Vec<_> = glob::glob("/sys/class/hwmon/hwmon*/device/*")
         .into_iter()
         .flatten()
-        .flat_map(|gr| gr)
+        .flatten()
         .map(|path| format!("{}", path.display()))
         .collect();
-    log::debug!("Found the following devices:\n{}", hwmon_devices.join("\n"));
+    log::debug!(
+        "Found the following hwmon devices:\n{}",
+        hwmon_devices.join("\n")
+    );
 
+    log::debug!("Search for hwmon devices with the name 'applesmc'");
     // /sys/class/hwmon/hwmon*/device/name == "applesmc"
     // /sys/class/hwmon/hwmon*/device/fan*
     let mut fans = Vec::default();
@@ -154,9 +170,14 @@ fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
             continue;
         }
 
+        log::debug!(
+            "Search for files like 'fan*_input' in the 'applesmc' device at {}",
+            path.display()
+        );
         let device_path = path.parent().ok_or(Error::NoFan)?;
         for fan_input in glob::glob(&format!("{}/fan*_input", device_path.display()))? {
             let mut fan_input = fan_input?;
+            log::debug!("Found fan {}", fan_input.display());
             let fan_name = fan_input
                 .file_name()
                 .and_then(|f| f.to_str())
@@ -191,6 +212,7 @@ fn find_temp_file(temps: glob::Paths, temp_buf: &mut String) -> Option<File> {
             continue;
         };
 
+        log::debug!("Found temp file {}", temp_path.display());
         let Ok(mut temp_file) = File::open(temp_path) else {
             log::error!("Unable to open temperature sensor");
             continue;
@@ -205,11 +227,13 @@ fn find_temp_file(temps: glob::Paths, temp_buf: &mut String) -> Option<File> {
 }
 
 fn find_cpu_temp_file(temp_buf: &mut String) -> Result<File> {
+    log::debug!("Search for CPU temperature files");
     let temps = glob::glob("/sys/devices/platform/coretemp.0/hwmon/hwmon*/temp1_input")?;
     find_temp_file(temps, temp_buf).ok_or(Error::NoCpu)
 }
 
 fn find_gpu_temp_file(temp_buf: &mut String) -> Result<Option<File>> {
+    log::debug!("Search for GPU temperature files");
     let temps = glob::glob("/sys/class/drm/card0/device/hwmon/hwmon*/temp1_input")?;
     Ok(find_temp_file(temps, temp_buf))
 }

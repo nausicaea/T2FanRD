@@ -7,7 +7,7 @@ RUN apk add --no-cache openssl-dev openssl-libs-static
 WORKDIR /workdir
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo 'fn main() {}' > src/main.rs
-RUN cargo fetch --locked --target ${TARGET}
+RUN cargo build --locked --release --target ${TARGET}
 COPY src/ ./src/
 RUN cargo build --frozen --release --target ${TARGET} ${FEATURES}
 
@@ -17,7 +17,7 @@ LABEL \
     org.opencontainers.image.description="Simple Fan Daemon for T2 Macs" \
     org.opencontainers.image.authors="GnomedDev,nausicaea" \
     org.opencontainers.image.source="https://github.com/nausicaea/t2fanrd" \
-    org.opencontainers.image.version="0.4.4" \
+    org.opencontainers.image.version="0.4.5" \
     org.opencontainers.image.licenses="GPL-3.0-only"
 COPY manifest.yaml /
 COPY rootfs/ /rootfs/
