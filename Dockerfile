@@ -7,7 +7,7 @@ RUN apk add --no-cache openssl-dev openssl-libs-static
 WORKDIR /workdir
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo 'fn main() {}' > src/main.rs
-RUN cargo fetch --locked --target ${TARGET}
+RUN cargo build --locked --release --target ${TARGET}
 COPY src/ ./src/
 RUN cargo build --frozen --release --target ${TARGET} ${FEATURES}
 
