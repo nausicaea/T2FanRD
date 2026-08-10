@@ -10,6 +10,7 @@ jobs:
       contents: read
     container:
       image: docker.io/renovate/renovate:44.18@sha256:905409d573f5ef85666f7ec85bb2bc8e7ac0c1cc57d735947bc300c1c6ea2c00
+      options: --user 0:0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: renovate-config-validator
