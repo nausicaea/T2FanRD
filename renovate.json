@@ -6,7 +6,7 @@
     "assignees": ["nausicaea"],
     "minimumReleaseAge": "7d",
     "rangeStrategy": "pin",
-    "lockfileMaintenance": {
+    "lockFileMaintenance": {
         "enabled": true,
         "schedule": ["early monday"]
     }
