@@ -5,8 +5,6 @@ use std::{
     str::FromStr,
 };
 
-use nonempty::NonEmpty as NonEmptyVec;
-
 use crate::{Error, Result, error::ConfigError, fan_controller::FanController};
 
 #[derive(Clone, Copy, Debug)]
@@ -174,10 +172,10 @@ fn generate_config_file<P: AsRef<Path>>(
 
 pub fn load_fan_configs<P: AsRef<Path>>(
     config: P,
-    fans: NonEmptyVec<PathBuf>,
+    fans: Vec<PathBuf>,
     temp_buf: &mut String,
-) -> Result<NonEmptyVec<FanController>> {
-    let fan_count = fans.len_nonzero();
+) -> Result<Vec<FanController>> {
+    let fan_count = NonZeroUsize::new(fans.len()).ok_or(Error::NoFan)?;
     let configs = match std::fs::read_to_string(&config) {
         Ok(file_raw) => parse_config_file(&file_raw, fan_count)
             .map_err(|e| Error::Config(config.as_ref().to_path_buf(), e))?,
@@ -199,5 +197,5 @@ pub fn load_fan_configs<P: AsRef<Path>>(
         .map(|(fan, config)| FanController::new(fan, config, temp_buf))
         .collect::<Result<_>>()?;
 
-    Ok(NonEmptyVec::from_vec(fans).unwrap())
+    Ok(fans)
 }

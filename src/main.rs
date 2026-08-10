@@ -12,21 +12,21 @@ use std::{
     },
 };
 
-use arraydeque::ArrayDeque;
 use clap::Parser;
 use fan_controller::FanController;
-use nonempty::NonEmpty as NonEmptyVec;
 use signal_hook::consts::{SIGHUP, SIGINT, SIGQUIT, SIGTERM};
 use signal_hook::flag as signal_flag;
 
-use config::load_fan_configs;
-use error::{Error, Result};
+use crate::config::load_fan_configs;
+use crate::error::{Error, Result};
+use crate::ring_buffer::RingBuffer;
 
 use crate::error::FanError;
 
 mod config;
 mod error;
 mod fan_controller;
+mod ring_buffer;
 
 // #[cfg(not(any(target_os = "linux", feature = "skip_linux_check")))]
 // compile_error!("This tool is only developed for Linux systems.");
@@ -144,7 +144,7 @@ fn get_current_euid() -> libc::uid_t {
     euid
 }
 
-fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
+fn find_fans() -> Result<Vec<PathBuf>> {
     let hwmon_devices: Vec<_> = glob::glob("/sys/class/hwmon/hwmon*/device/*")
         .into_iter()
         .flatten()
@@ -189,7 +189,11 @@ fn find_fans() -> Result<NonEmptyVec<PathBuf>> {
         }
     }
 
-    NonEmptyVec::from_vec(fans).ok_or(Error::NoFan)
+    if fans.is_empty() {
+        return Err(Error::NoFan);
+    }
+
+    Ok(fans)
 }
 
 fn read_temp_file(temp_file: &mut File, temp_buf: &mut String) -> Result<u8> {
@@ -242,7 +246,7 @@ fn start_temp_loop(
     mut temp_buffer: String,
     mut cpu_temp_file: File,
     mut gpu_temp_file: Option<File>,
-    fans: &mut NonEmptyVec<FanController>,
+    fans: &mut Vec<FanController>,
 ) -> Result<()> {
     let term = Arc::new(AtomicBool::new(false));
     signal_flag::register(SIGINT, term.clone()).map_err(Error::Signal)?;
@@ -251,7 +255,7 @@ fn start_temp_loop(
     signal_flag::register(SIGHUP, term.clone()).map_err(Error::Signal)?;
 
     let mut last_temp = 0;
-    let mut temps = ArrayDeque::<u8, 50, arraydeque::Wrapping>::new();
+    let mut temps = RingBuffer::<u8, 50>::default();
     let mut was_long_sleep = false;
     while !term.load(Ordering::Relaxed) {
         let cpu_temp = read_temp_file(&mut cpu_temp_file, &mut temp_buffer)?;
