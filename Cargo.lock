@@ -1464,7 +1464,7 @@ dependencies = [
 
 [[package]]
 name = "t2fanrd"
-version = "0.4.6"
+version = "0.4.7"
 dependencies = [
  "clap",
  "env_logger",
