@@ -4,12 +4,10 @@
         "config:best-practices"
     ],
     "assignees": ["nausicaea"],
-    "packageRules": [
-        {
-            "minimumReleaseAge": "7d",
-            "matchPackageNames": [
-                "*"
-            ]
-        }
-    ]
+    "minimumReleaseAge": "7d",
+    "rangeStrategy": "pin",
+    "lockfileMaintenance": {
+        "enabled": true,
+        "schedule": ["early mondays"]
+    }
 }
