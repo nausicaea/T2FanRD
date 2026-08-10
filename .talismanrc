@@ -1,0 +1,4 @@
+fileignoreconfig:
+- filename: .github/workflows/validate-renovate-config.yml
+  checksum: 394639a3373f105bcde97bf0327daac83912042305b319dc1eb3b3ddea6712b5
+version: "1.0"
