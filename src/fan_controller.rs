@@ -94,7 +94,7 @@ impl FanController {
             this.path.display(),
             this.min_speed,
             this.max_speed,
-            &this.config,
+            this.config,
         );
 
         // Acquire manual control (see `Drop` impl)
