@@ -8,6 +8,6 @@
     "rangeStrategy": "pin",
     "lockFileMaintenance": {
         "enabled": true,
-        "schedule": ["every monday"]
+        "schedule": ["on monday"]
     }
 }
