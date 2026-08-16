@@ -21,7 +21,7 @@ thiserror = { version = "=2.0.20", default-features = false }
 signal-hook = { version = "=0.4.4", default-features = false }
 log = "=0.4.33"
 env_logger = { version = "=0.11.11", default-features = false, features = ["humantime"] }
-clap = { version = "=4.6.5", default-features = false, features = ["derive", "help", "std", "usage"] }
+clap = { version = "=4.6.6", default-features = false, features = ["derive", "help", "std", "usage"] }
 sentry = { version = "=0.49.1", optional = true, default-features = false, features = ["log", "panic", "transport", "logs"] }
 sentry-log = { version = "=0.49.1", optional = true }
 
