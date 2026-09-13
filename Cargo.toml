@@ -11,7 +11,7 @@ default = []
 skip_linux_check = []
 skip_root_check = []
 skip_flock = []
-observability = ["dep:sentry", "dep:sentry-log"]
+observability = ["dep:sentry"]
 
 [dependencies]
 glob = { version = "=0.3.4", default-features = false }
@@ -23,7 +23,6 @@ log = "=0.4.34"
 env_logger = { version = "=0.11.11", default-features = false, features = ["humantime"] }
 clap = { version = "=4.6.6", default-features = false, features = ["derive", "help", "std", "usage"] }
 sentry = { version = "=0.49.2", optional = true, default-features = false, features = ["log", "panic", "transport", "logs"] }
-sentry-log = { version = "=0.49.2", optional = true }
 
 [profile.release]
 lto = "thin"

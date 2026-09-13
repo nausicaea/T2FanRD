@@ -1371,7 +1371,6 @@ dependencies = [
  "log",
  "rust-ini",
  "sentry",
- "sentry-log",
  "signal-hook",
  "thiserror",
 ]
