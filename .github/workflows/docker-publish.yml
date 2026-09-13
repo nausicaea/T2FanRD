@@ -22,6 +22,14 @@ jobs:
       contents: read
       packages: write
       id-token: write
+    strategy:
+      matrix:
+        include:
+          - suffix: ""
+            features: ""
+          - suffix: "observ"
+            features: "-F observability"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -56,6 +64,8 @@ jobs:
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            suffix=${{ matrix.suffix }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
@@ -70,6 +80,8 @@ jobs:
           cache-from: type=gha,scope=t2fanrd-build
           cache-to: type=gha,mode=max,scope=t2fanrd-build
           sbom: true
+          build-args: |
+            FEATURES=${{ matrix.features }}
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker

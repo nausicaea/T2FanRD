@@ -10,10 +10,16 @@ env:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      matrix:
+        include:
+          - suffix: ""
+            features: ""
+          - suffix: "observ"
+            features: "-F observability"
 
     steps:
       - name: Checkout repository
@@ -29,3 +35,5 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            FEATURES=${{ matrix.features }}

@@ -1362,7 +1362,7 @@ dependencies = [
 
 [[package]]
 name = "t2fanrd"
-version = "0.4.7"
+version = "0.4.8"
 dependencies = [
  "clap",
  "env_logger",
@@ -1371,7 +1371,6 @@ dependencies = [
  "log",
  "rust-ini",
  "sentry",
- "sentry-log",
  "signal-hook",
  "thiserror",
 ]
