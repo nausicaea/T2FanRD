@@ -15,7 +15,11 @@ jobs:
       contents: read
     strategy:
       matrix:
-        features: ["", "-F observability"]
+        include:
+          - suffix: ""
+            features: ""
+          - suffix: "observ"
+            features: "-F observability"
 
     steps:
       - name: Checkout repository
