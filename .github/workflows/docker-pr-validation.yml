@@ -29,3 +29,8 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args:
+            - "FEATURES=${{ matrix.features }}"
+        strategy:
+          matrix:
+            features: ["", "-F observability"]
