@@ -32,4 +32,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args:
-            - "FEATURES=${{ matrix.features }}"
+            FEATURES: "${{ matrix.features }}"
