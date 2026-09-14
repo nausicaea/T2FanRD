@@ -1,6 +1,6 @@
 [package]
 name = "t2fanrd"
-version = "0.4.8"
+version = "0.4.9"
 edition = "2024"
 license = "GPL-3.0-or-later"
 description = "Simple Fan Daemon for T2 Macs"
@@ -23,9 +23,3 @@ log = "=0.4.34"
 env_logger = { version = "=0.11.11", default-features = false, features = ["humantime"] }
 clap = { version = "=4.6.6", default-features = false, features = ["derive", "help", "std", "usage"] }
 sentry = { version = "=0.49.2", optional = true, default-features = false, features = ["log", "panic", "transport", "logs"] }
-
-[profile.release]
-lto = "thin"
-opt-level = "s"
-strip = true
-codegen-units = 1
