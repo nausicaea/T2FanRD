@@ -3,13 +3,15 @@ FROM --platform=${BUILDPLATFORM} docker.io/library/rust:1.98.0-alpine3.23@sha256
 ARG FEATURES=""
 ARG RUSTFLAGS="-C target-feature=+crt-static"
 ARG TARGET=x86_64-unknown-linux-musl
+ENV RUSTFLAGS=${RUSTFLAGS}
 RUN apk add --no-cache openssl-dev openssl-libs-static
 WORKDIR /workdir
 COPY Cargo.toml Cargo.lock ./
 RUN mkdir src && echo 'fn main() {}' > src/main.rs
 RUN cargo build --locked --release --target ${TARGET} ${FEATURES}
 COPY src/ ./src/
-RUN cargo build --frozen --release --target ${TARGET} ${FEATURES}
+RUN find src -exec touch {} +; \
+    cargo build --frozen --release --target ${TARGET} ${FEATURES}
 
 FROM scratch
 LABEL \
