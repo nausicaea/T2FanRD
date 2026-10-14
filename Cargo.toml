@@ -15,7 +15,7 @@ observability = ["dep:sentry"]
 
 [dependencies]
 glob = { version = "=0.3.4", default-features = false }
-libc = { version = "=0.2.189", default-features = false }
+libc = { version = "=0.2.190", default-features = false }
 rust-ini = { version = "=0.21.3", default-features = false }
 thiserror = { version = "=2.0.21", default-features = false }
 signal-hook = { version = "=0.4.4", default-features = false }
