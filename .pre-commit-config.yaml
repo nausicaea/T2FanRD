@@ -35,6 +35,7 @@ repos:
     rev: v4.16.4
     hooks:
       - id: commitizen
+      - id: commitizen-branch
 
   - repo: https://rosa.radicle.network/z2u7x2qgAhLqCFcMiy5CBGfZem19f.git
     rev: 3d06779986d906d7c7a060d2ec9798ba8ba83e7c
