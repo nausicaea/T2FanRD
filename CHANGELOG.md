@@ -1,3 +1,13 @@
+## v0.4.11 (2026-11-25)
+
+### Fix
+
+- **deps**: update rust crate sentry to v0.49.6 (#111)
+- **deps**: update rust crate signal-hook to v0.4.6 (#102)
+- **deps**: update rust crate sentry to v0.49.5 (#101)
+- **deps**: update rust crate log to v0.4.35 (#100)
+- **deps**: update rust crate libc to v0.2.191 (#92)
+
 ## v0.4.10 (2026-10-17)
 
 ### Fix
